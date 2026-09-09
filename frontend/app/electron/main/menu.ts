@@ -117,11 +117,6 @@ export class MenuManager {
       this.getViewMenu(),
       this.getHelpMenu(),
       ...(this.config.isDev ? [this.getDebugMenu()] : []),
-      // Re-render the menu with the 'Get rotki Premium' button if the user who just logged in
-      // is not a premium user, otherwise render the menu without the button. Since we are unable to just toggle
-      // visibility on a top-level menu item, we instead have to add/remove it from the menu upon every login
-      // (see https://github.com/electron/electron/issues/8703).
-      ...(!this.isPremium ? [this.getPremiumMenu()] : []),
     ];
   }
 

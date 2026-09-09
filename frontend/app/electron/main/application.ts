@@ -65,6 +65,8 @@ export class Application {
   };
 
   constructor() {
+    app.setName('CryptoLedger Gipuzkoa');
+
     const instanceDataDir = process.env.ROTKI_INSTANCE_DATA_DIR;
     if (instanceDataDir)
       app.setPath('userData', path.join(instanceDataDir, 'electron'));
