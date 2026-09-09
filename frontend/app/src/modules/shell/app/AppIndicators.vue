@@ -3,7 +3,6 @@ import { checkIfDevelopment } from '@shared/utils';
 import CurrencyDropdown from '@/modules/assets/amount-display/CurrencyDropdown.vue';
 import { useAreaVisibilityStore } from '@/modules/core/common/use-area-visibility-store';
 import UserNotesIndicator from '@/modules/notes/UserNotesIndicator.vue';
-import GetPremiumButton from '@/modules/premium/GetPremiumButton.vue';
 import PrivacyModeDropdown from '@/modules/settings/PrivacyModeDropdown.vue';
 import AppUpdateIndicator from '@/modules/shell/components/AppUpdateIndicator.vue';
 import BackButton from '@/modules/shell/components/BackButton.vue';
@@ -28,8 +27,8 @@ const { showHelpBar, showNotesSidebar, showNotificationBar, showPinned } = store
     <SyncIndicator />
     <BackButton />
   </div>
+
   <div class="flex overflow-hidden h-full items-center">
-    <GetPremiumButton hide-on-small-screen />
     <RouterLink
       v-if="isDevelopment && isSmAndUp && !isDemoMode"
       to="/playground"
@@ -42,20 +41,25 @@ const { showHelpBar, showNotesSidebar, showNotificationBar, showPinned } = store
         <RuiIcon name="lu-code-xml" />
       </RuiButton>
     </RouterLink>
+
     <AppUpdateIndicator />
     <UserNotesIndicator v-model:visible="showNotesSidebar" />
     <PinnedIndicator v-model:visible="showPinned" />
+
     <ThemeControl
       v-if="isSmAndUp"
       :dark-mode-enabled="isDark"
     />
+
     <NotificationIndicator
       :visible="showNotificationBar"
       @click="showNotificationBar = !showNotificationBar"
     />
+
     <CurrencyDropdown />
     <PrivacyModeDropdown v-if="isSmAndUp" />
     <UserDropdown />
+
     <HelpIndicator
       v-if="isSmAndUp"
       v-model:visible="showHelpBar"

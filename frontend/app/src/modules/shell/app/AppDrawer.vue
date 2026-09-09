@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useAreaVisibilityStore } from '@/modules/core/common/use-area-visibility-store';
-import SponsorshipView from '@/modules/premium/SponsorshipView.vue';
 import GlobalSearch from '@/modules/shell/components/GlobalSearch.vue';
 import NavigationMenu from '@/modules/shell/components/navigation/NavigationMenu.vue';
 import RotkiLogo from '@/modules/shell/components/RotkiLogo.vue';
@@ -69,11 +68,6 @@ watchImmediate(isXlAndDown, (isXlAndDown) => {
       <NavigationMenu :is-mini="isMini" />
     </div>
 
-    <div
-      v-if="!isMini"
-      class="px-6 py-3 border-t border-default"
-    >
-      <SponsorshipView drawer />
-    </div>
+   
   </RuiNavigationDrawer>
 </template>

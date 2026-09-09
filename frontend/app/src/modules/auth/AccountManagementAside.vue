@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import SponsorshipView from '@/modules/premium/SponsorshipView.vue';
-
 defineSlots<{
   default: () => any;
 }>();
@@ -11,7 +9,5 @@ defineSlots<{
     <div class="p-6 lg:px-8 lg:py-12 xl:p-12 flex-1 overflow-auto">
       <slot />
     </div>
-
-    <SponsorshipView class="border-t border-default bottom-0 right-0 px-6 py-3" />
   </div>
 </template>
