@@ -42,16 +42,33 @@ watchImmediate(isXlAndDown, (isXlAndDown) => {
           'px-0 [&>div]:h-8 justify-center': isMini,
         }"
       >
-        <RouterLink :to="{ name: '/dashboard/' }">
+        <RouterLink
+          :to="{ name: '/dashboard/' }"
+          class="flex items-center gap-3"
+        >
           <RotkiLogo
-            :text="!isMini"
-            :size="isMini ? 1.625 : 3"
+            :text="false"
+            :size="isMini ? 1.625 : 2.25"
           />
+
+          <div
+            v-if="!isMini"
+            class="flex flex-col leading-tight"
+          >
+            <span class="font-bold text-lg">
+              CryptoLedger Gipuzkoa
+            </span>
+            <span class="text-xs text-rui-text-secondary">
+              Entorno de desarrollo
+            </span>
+          </div>
         </RouterLink>
       </div>
+
       <GlobalSearch :is-mini="isMini" />
       <NavigationMenu :is-mini="isMini" />
     </div>
+
     <div
       v-if="!isMini"
       class="px-6 py-3 border-t border-default"

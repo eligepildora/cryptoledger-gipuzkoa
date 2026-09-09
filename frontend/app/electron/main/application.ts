@@ -1,5 +1,6 @@
 import type { AppConfig } from '@electron/main/app-config';
 import type { McpServerStatus, StarlingServiceStatus } from '@shared/ipc';
+import path from 'node:path';
 import process from 'node:process';
 import { IpcCommands } from '@electron/ipc-commands';
 import { protectHtmlAssociation } from '@electron/main/html-mime-protection';
@@ -64,6 +65,10 @@ export class Application {
   };
 
   constructor() {
+    const instanceDataDir = process.env.ROTKI_INSTANCE_DATA_DIR;
+    if (instanceDataDir)
+      app.setPath('userData', path.join(instanceDataDir, 'electron'));
+
     this.logger = new LogService(app);
     this.logger.setLogLevel(resolveLogLevel(undefined, this.appConfig.isDev));
     this.settings = new SettingsManager(app);
