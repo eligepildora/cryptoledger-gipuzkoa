@@ -103,11 +103,11 @@ export class MenuManager {
     const macAppMenu: MenuItemConstructorOptions = {
       label: app.name,
       submenu: [
-        { role: 'hide' },
-        { role: 'hideOthers' },
-        { role: 'unhide' },
+        { role: 'hide', label: 'Ocultar' },
+        { role: 'hideOthers', label: 'Ocultar las demás' },
+        { role: 'unhide', label: 'Mostrar todo' },
         this.separator,
-        { role: 'quit' },
+        { role: 'quit', label: 'Salir' },
       ],
     };
     return [
@@ -122,39 +122,39 @@ export class MenuManager {
 
   private getHelpMenu(): MenuItemConstructorOptions {
     return {
-      label: '&Help',
+      label: '&Ayuda',
       submenu: [
         {
-          label: 'Usage Guide',
+          label: 'Guía de uso',
           click: () => this.openLink(externalLinks.usageGuide),
         },
         {
-          label: 'Frequently Asked Questions',
+          label: 'Preguntas frecuentes',
           click: () => this.openLink(externalLinks.faq),
         },
         this.separator,
         {
-          label: 'Release Notes',
+          label: 'Notas de la versión',
           click: () => this.openLink(externalLinks.changeLog),
         },
         this.separator,
         {
-          label: 'Issue / Feature Requests',
+          label: 'Incidencias / Solicitudes de funciones',
           click: () => this.openLink(externalLinks.githubIssues),
         },
         {
-          label: 'Logs Directory',
+          label: 'Carpeta de registros',
           click: () => this.openPath(this.logger.logDirectory),
         },
         {
           id: DATA_DIRECTORY_ID,
-          label: 'Data Directory',
+          label: 'Carpeta de datos',
           enabled: !!this.dataDirectory,
           click: () => this.openPath(this.dataDirectory),
         },
         this.separator,
         {
-          label: 'Clear Cache',
+          label: 'Vaciar caché',
           click: (_item: MenuItem, window?: BaseWindow) => {
             if (!window || !(window instanceof BrowserWindow)) {
               console.warn('window is not a BrowserWindow');
@@ -168,7 +168,7 @@ export class MenuManager {
           },
         },
         {
-          label: 'Reset Settings / Restart Backend',
+          label: 'Restablecer ajustes / Reiniciar backend',
           click: (_item: MenuItem, window?: BaseWindow) => {
             if (!window || !(window instanceof BrowserWindow)) {
               console.warn('window is not a BrowserWindow');
@@ -182,7 +182,7 @@ export class MenuManager {
         },
         this.separator,
         {
-          label: 'About',
+          label: 'Acerca de',
           click: (_item: MenuItem, window?: BaseWindow) => {
             if (!window || !(window instanceof BrowserWindow)) {
               console.warn('window is not a BrowserWindow');
@@ -198,10 +198,10 @@ export class MenuManager {
 
   private getDebugMenu(): MenuItemConstructorOptions {
     return {
-      label: '&Debug',
+      label: '&Depuración',
       submenu: [
         {
-          label: 'Persist store',
+          label: 'Conservar almacenamiento',
           type: 'checkbox',
           checked: this.settings.appSettings.persistStore ?? false,
           click: (item: MenuItem, window?: BaseWindow) => {
@@ -219,10 +219,10 @@ export class MenuManager {
         },
         this.separator,
         {
-          label: 'Reset local state',
+          label: 'Restablecer estado local',
           submenu: [{
-            label: 'First-run state',
-            toolTip: 'Clears dismissals, version and asset-update throttles, then reloads. Backend url, login and preferences are kept.',
+            label: 'Estado de primer inicio',
+            toolTip: 'Borra avisos descartados, versión y límites de actualización de activos, y después recarga. Se conservan la URL del backend, el inicio de sesión y las preferencias.',
             click: (_item: MenuItem, window?: BaseWindow) => {
               this.resetDebugState(DebugStateGroup.FIRST_RUN, window);
             },
@@ -269,31 +269,31 @@ export class MenuManager {
 
   private getEditMenu(): MenuItemConstructorOptions {
     const macEditOptions: MenuItemConstructorOptions[] = [
-      { role: 'pasteAndMatchStyle' },
-      { role: 'delete' },
-      { role: 'selectAll' },
+      { role: 'pasteAndMatchStyle', label: 'Pegar con el mismo estilo' },
+      { role: 'delete', label: 'Eliminar' },
+      { role: 'selectAll', label: 'Seleccionar todo' },
       this.separator,
       {
-        label: 'Speech',
-        submenu: [{ role: 'startSpeaking' }, { role: 'stopSpeaking' }],
+        label: 'Voz',
+        submenu: [{ role: 'startSpeaking', label: 'Iniciar lectura' }, { role: 'stopSpeaking', label: 'Detener lectura' }],
       },
     ];
 
     const editOptions: MenuItemConstructorOptions[] = [
-      { role: 'delete' },
+      { role: 'delete', label: 'Eliminar' },
       this.separator,
-      { role: 'selectAll' },
+      { role: 'selectAll', label: 'Seleccionar todo' },
     ];
 
     return {
-      label: '&Edit',
+      label: '&Editar',
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
+        { role: 'undo', label: 'Deshacer' },
+        { role: 'redo', label: 'Rehacer' },
         this.separator,
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
+        { role: 'cut', label: 'Cortar' },
+        { role: 'copy', label: 'Copiar' },
+        { role: 'paste', label: 'Pegar' },
         // Macs have special copy/paste and speech functionality
         ...(this.config.isMac ? macEditOptions : editOptions),
       ],
@@ -302,15 +302,15 @@ export class MenuManager {
 
   private getFileMenu(): MenuItemConstructorOptions {
     return {
-      label: 'File',
-      submenu: [this.config.isMac ? { role: 'close' } : { role: 'quit' }],
+      label: '&Archivo',
+      submenu: [this.config.isMac ? { role: 'close', label: 'Cerrar' } : { role: 'quit', label: 'Salir' }],
     };
   }
 
   private getViewMenu(): MenuItemConstructorOptions {
     const minimize: MenuItemConstructorOptions = {
       id: 'MINIMIZE_TO_TRAY',
-      label: 'Minimize to tray',
+      label: 'Minimizar a la bandeja',
       enabled: this.settings.appSettings.displayTray,
       click: (_: MenuItem, window?: BaseWindow) => {
         window?.hide();
@@ -318,18 +318,18 @@ export class MenuManager {
     };
 
     const developmentDevTools: MenuItemConstructorOptions[] = [
-      { role: 'reload' },
-      { role: 'forceReload' },
-      { role: 'toggleDevTools' },
+      { role: 'reload', label: 'Recargar' },
+      { role: 'forceReload', label: 'Forzar recarga' },
+      { role: 'toggleDevTools', label: 'Herramientas de desarrollo' },
       this.separator,
     ];
 
     const productionDevTools: MenuItemConstructorOptions[] = [
-      { role: 'toggleDevTools', visible: false },
+      { role: 'toggleDevTools', label: 'Herramientas de desarrollo', visible: false },
     ];
 
     const displayTrayIcon: MenuItemConstructorOptions = {
-      label: 'Display Tray Icon',
+      label: 'Mostrar icono en la bandeja',
       type: 'checkbox',
       checked: this.settings.appSettings.displayTray,
       click: (item: MenuItem) => {
@@ -351,15 +351,15 @@ export class MenuManager {
     };
 
     return {
-      label: '&View',
+      label: '&Ver',
       submenu: [
         ...(this.config.isDev ? developmentDevTools : productionDevTools),
-        { role: 'minimize' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
+        { role: 'minimize', label: 'Minimizar' },
+        { role: 'resetZoom', label: 'Restablecer zoom' },
+        { role: 'zoomIn', label: 'Ampliar' },
+        { role: 'zoomOut', label: 'Reducir' },
         this.separator,
-        { role: 'togglefullscreen' },
+        { role: 'togglefullscreen', label: 'Pantalla completa' },
         minimize,
         this.separator,
         displayTrayIcon,
