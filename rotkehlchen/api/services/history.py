@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import logging
@@ -51,8 +51,6 @@ from rotkehlchen.premium.premium import (
     ASSET_MOVEMENT_MATCHING_CAPABILITY,
     GNOSIS_PAY_CAPABILITY,
     MONERIUM_CAPABILITY,
-    UserLimitType,
-    get_user_limit,
     has_premium_capability,
     has_premium_check,
 )
@@ -392,32 +390,21 @@ class HistoryService:
             aggregate_by_group_ids: bool,
     ) -> dict[str, Any]:
         dbevents = DBHistoryEvents(self.rotkehlchen.data.db)
-        entries_limit, has_premium = get_user_limit(
-            premium=self.rotkehlchen.premium,
-            limit_type=UserLimitType.HISTORY_EVENTS,
-        )
-
         with self.rotkehlchen.data.db.conn.read_ctx() as cursor:
             entries_total = self.rotkehlchen.data.db.get_entries_count(
                 cursor=cursor,
                 entries_table='history_events',
                 group_by='group_identifier' if aggregate_by_group_ids else None,
             )
-            # entries_total is the unfiltered row/group count for the whole table. If it is
-            # already at or below the tier limit then the filtered count must also be, so the
-            # DISTINCT … LIMIT N window subquery can never truncate results and can be skipped.
-            # This does NOT fire when only the filtered subset would fit — we would need an
-            # extra query to know that, which is not worth it here.
-            effective_entries_limit = None if entries_total <= entries_limit else entries_limit
-            _, processed_events_result, joined_group_ids, entries_found, entries_with_limit, entries_total, ignored_group_identifiers, event_to_pair = self._query_history_events_with_matched_processing(  # noqa: E501
+            _, processed_events_result, joined_group_ids, _entries_found, entries_with_limit, entries_total, ignored_group_identifiers, event_to_pair = self._query_history_events_with_matched_processing(  # noqa: E501
                 cursor=cursor,
                 dbevents=dbevents,
                 filter_query=filter_query,
-                entries_limit=effective_entries_limit,
+                entries_limit=None,
                 aggregate_by_group_ids=aggregate_by_group_ids,
                 match_exact_events=True,
                 entries_total=entries_total,
-                need_entries_found=has_premium is False,
+                need_entries_found=False,
             )
             group_has_ignored_assets = {
                 joined_group_ids.get(group_identifier, group_identifier)
@@ -483,12 +470,9 @@ class HistoryService:
                 group_has_ignored_assets=group_has_ignored_assets,
             )),
             'entries_found': entries_with_limit,
-            'entries_limit': entries_limit,
+            'entries_limit': -1,
             'entries_total': entries_total,
         }
-        if has_premium is False:
-            result['entries_found_total'] = entries_found
-
         return {'result': result, 'message': '', 'status_code': HTTPStatus.OK}
 
     def query_kraken_staking_events(
@@ -533,17 +517,13 @@ class HistoryService:
             match_exact_events: bool,
     ) -> dict[str, Any]:
         dbevents = DBHistoryEvents(self.rotkehlchen.data.db)
-        entries_limit, _ = get_user_limit(
-            premium=self.rotkehlchen.premium,
-            limit_type=UserLimitType.HISTORY_EVENTS,
-        )
         with self.rotkehlchen.data.db.conn.read_ctx() as cursor:
             processed_events_result: list[HistoryBaseEntry]
             history_query_result = self._query_history_events_with_matched_processing(
                 cursor=cursor,
                 dbevents=dbevents,
                 filter_query=filter_query,
-                entries_limit=entries_limit,
+                entries_limit=None,
                 aggregate_by_group_ids=False,
                 match_exact_events=match_exact_events,
                 entries_total=0,
@@ -651,10 +631,6 @@ class HistoryService:
         )
 
         message = ''
-        entries_limit, _ = get_user_limit(
-            premium=self.rotkehlchen.premium,
-            limit_type=UserLimitType.HISTORY_EVENTS,
-        )
         exchanges_list = self.rotkehlchen.exchange_manager.connected_exchanges.get(
             location,
         )
@@ -692,7 +668,7 @@ class HistoryService:
             entries_total, _ = history_events_db.get_history_events_count(
                 cursor=cursor,
                 query_filter=table_filter,
-                entries_limit=entries_limit,
+                entries_limit=None,
             )
             value_query_filters, value_bindings = value_filter.prepare(
                 with_pagination=False,
@@ -707,7 +683,7 @@ class HistoryService:
             result = {
                 'entries': events,
                 'entries_found': entries_found,
-                'entries_limit': entries_limit,
+                'entries_limit': -1,
                 'entries_total': entries_total,
                 'total_value': total_value,
                 'assets': history_events_db.get_entries_assets_history_events(

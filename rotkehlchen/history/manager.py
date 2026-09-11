@@ -8,7 +8,6 @@ from rotkehlchen.errors.misc import RemoteError
 from rotkehlchen.fval import FVal
 from rotkehlchen.history.events.structures.base import HistoryBaseEntry, HistoryEvent
 from rotkehlchen.logging import RotkehlchenLogsAdapter
-from rotkehlchen.premium.premium import UserLimitType, get_user_limit
 from rotkehlchen.types import EVM_CHAINS_WITH_TRANSACTIONS, Location, Timestamp
 from rotkehlchen.utils.misc import timestamp_to_date, ts_sec_to_ms
 
@@ -114,14 +113,10 @@ class HistoryQueryingManager:
                 )
 
         db = DBHistoryEvents(self.db)
-        history_events_limit, _ = get_user_limit(
-            premium=self.chains_aggregator.premium,
-            limit_type=UserLimitType.HISTORY_EVENTS,
-        )
         events_result = db.get_history_events_and_limit_info(
             cursor=cursor,
             filter_query=filter_query,
-            entries_limit=history_events_limit,
+            entries_limit=None,
         )
         return events_result.events, events_result.entries_found  # type: ignore  # event is guaranteed HistoryEvent
 
