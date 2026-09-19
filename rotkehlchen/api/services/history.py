@@ -4,6 +4,7 @@ import json
 import logging
 import tempfile
 from collections import Counter, defaultdict
+from datetime import UTC, datetime
 from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -836,6 +837,19 @@ class HistoryService:
                     (replacement_group_id or event.group_identifier) in group_has_ignored_assets
                 ),
             )
+
+            # CryptoLedger Gipuzkoa:
+            # Keep Gipuzkoa-specific API data namespaced inside each history entry.
+            # Adding it here limits the change to /history/events instead of changing
+            # HistoryBaseEntry.serialize_for_api() globally.
+            serialized['entry']['gipuzkoa'] = {
+                'tax_year': datetime.fromtimestamp(
+                    ts_ms_to_sec(event.timestamp),
+                    tz=UTC,
+                ).year,
+                'classification': None,
+            }
+
             if replacement_group_id is not None:
                 serialized['entry']['group_identifier'] = replacement_group_id
                 serialized['entry']['actual_group_identifier'] = event.group_identifier

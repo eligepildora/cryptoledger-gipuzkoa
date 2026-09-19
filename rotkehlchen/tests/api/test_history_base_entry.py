@@ -1647,7 +1647,18 @@ def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
     assert result['entries_found'] == 10
     assert len(entries := result['entries']) == 4  # gas event, evm swap group, informational event, multi trade group  # noqa: E501
     assert entries[0]['entry']['counterparty'] == 'gas'
+
+    # CryptoLedger Gipuzkoa: tax year is derived from the event timestamp.
+    assert entries[0]['entry']['gipuzkoa'] == {
+        'tax_year': 2019,
+        'classification': None,
+    }
+
     assert len(entries[1]) == 3  # spend, receive, fee
+    assert all(event['entry']['gipuzkoa'] == {
+        'tax_year': 2019,
+        'classification': None,
+    } for event in entries[1])
     assert entries[1][0]['entry']['event_type'] == 'trade'
     assert entries[1][0]['entry']['event_subtype'] == 'spend'
     assert entries[1][1]['entry']['event_subtype'] == 'receive'
