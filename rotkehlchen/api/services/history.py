@@ -4,7 +4,8 @@ import json
 import logging
 import tempfile
 from collections import Counter, defaultdict
-from datetime import UTC, datetime
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -890,7 +891,7 @@ class HistoryService:
             serialized['entry']['gipuzkoa'] = {
                 'tax_year': datetime.fromtimestamp(
                     ts_ms_to_sec(event.timestamp),
-                    tz=UTC,
+                    tz=ZoneInfo('Europe/Madrid'),
                 ).year,
                 'classification': _get_gipuzkoa_classification(event),
             }

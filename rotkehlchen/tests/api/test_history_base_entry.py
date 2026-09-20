@@ -1527,6 +1527,40 @@ def test_add_edit_evm_swap_events(rotkehlchen_api_server: APIServer) -> None:
     }
 
 
+
+def test_gipuzkoa_tax_year_uses_local_timezone(
+        rotkehlchen_api_server: APIServer,
+) -> None:
+    """Test Gipuzkoa tax year follows Europe/Madrid civil time."""
+    rotki = rotkehlchen_api_server.rest_api.rotkehlchen
+    db = DBHistoryEvents(rotki.data.db)
+
+    with rotki.data.db.conn.write_ctx() as write_cursor:
+        db.add_history_events(
+            write_cursor=write_cursor,
+            history=[EvmEvent(
+                tx_ref=deserialize_evm_tx_hash(
+                    '0x1111111111111111111111111111111111111111111111111111111111111111',
+                ),
+                sequence_index=0,
+                timestamp=TimestampMS(1735687800000),
+                location=Location.ETHEREUM,
+                event_type=HistoryEventType.INFORMATIONAL,
+                event_subtype=HistoryEventSubType.NONE,
+                asset=A_ETH,
+                amount=ZERO,
+            )],
+        )
+
+    result = assert_proper_sync_response_with_result(
+        response=requests.post(
+            api_url_for(rotkehlchen_api_server, 'historyeventresource'),
+        ),
+    )
+
+    assert result['entries'][0]['entry']['gipuzkoa']['tax_year'] == 2025
+
+
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
     """Test that events are properly grouped into sub-lists
     when they are serialized for the api.
