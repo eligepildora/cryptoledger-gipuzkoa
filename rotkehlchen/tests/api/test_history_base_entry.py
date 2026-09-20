@@ -1651,14 +1651,22 @@ def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
     # CryptoLedger Gipuzkoa: tax year is derived from the event timestamp.
     assert entries[0]['entry']['gipuzkoa'] == {
         'tax_year': 2019,
-        'classification': None,
+        'classification': 'expense',
     }
 
     assert len(entries[1]) == 3  # spend, receive, fee
-    assert all(event['entry']['gipuzkoa'] == {
-        'tax_year': 2019,
-        'classification': None,
-    } for event in entries[1])
+    assert [
+        event['entry']['gipuzkoa']['classification']
+        for event in entries[1]
+    ] == [
+        'disposal',
+        'acquisition',
+        'expense',
+    ]
+    assert all(
+        event['entry']['gipuzkoa']['tax_year'] == 2019
+        for event in entries[1]
+    )
     assert entries[1][0]['entry']['event_type'] == 'trade'
     assert entries[1][0]['entry']['event_subtype'] == 'spend'
     assert entries[1][1]['entry']['event_subtype'] == 'receive'
