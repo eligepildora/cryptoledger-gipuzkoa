@@ -1527,7 +1527,6 @@ def test_add_edit_evm_swap_events(rotkehlchen_api_server: APIServer) -> None:
     }
 
 
-
 def test_gipuzkoa_tax_year_uses_local_timezone(
         rotkehlchen_api_server: APIServer,
 ) -> None:
@@ -1559,6 +1558,69 @@ def test_gipuzkoa_tax_year_uses_local_timezone(
     )
 
     assert result['entries'][0]['entry']['gipuzkoa']['tax_year'] == 2025
+
+
+@pytest.mark.parametrize(('event_type', 'event_subtype', 'location', 'expected'), [
+    (
+        HistoryEventType.RECEIVE,
+        HistoryEventSubType.REWARD,
+        Location.EXTERNAL,
+        'income',
+    ),
+    (
+        HistoryEventType.TRANSFER,
+        HistoryEventSubType.NONE,
+        Location.EXTERNAL,
+        'transfer',
+    ),
+    (
+        HistoryEventType.INFORMATIONAL,
+        HistoryEventSubType.NONE,
+        Location.EXTERNAL,
+        'unknown',
+    ),
+    (
+        HistoryEventType.DEPOSIT,
+        HistoryEventSubType.DEPOSIT_ASSET,
+        Location.KRAKEN,
+        'transfer',
+    ),
+])
+def test_gipuzkoa_classification_categories(
+        rotkehlchen_api_server: APIServer,
+        event_type: HistoryEventType,
+        event_subtype: HistoryEventSubType,
+        location: Location,
+        expected: str,
+) -> None:
+    """Test CryptoLedger's technical Gipuzkoa classifications."""
+    rotki = rotkehlchen_api_server.rest_api.rotkehlchen
+    db = DBHistoryEvents(rotki.data.db)
+
+    with rotki.data.db.conn.write_ctx() as write_cursor:
+        db.add_history_events(
+            write_cursor=write_cursor,
+            history=[HistoryEvent(
+                group_identifier='gipuzkoa-classification-test',
+                sequence_index=0,
+                timestamp=TimestampMS(1700000000000),
+                location=location,
+                event_type=event_type,
+                event_subtype=event_subtype,
+                asset=A_ETH,
+                amount=FVal('1'),
+                notes='Gipuzkoa classification test',
+            )],
+        )
+
+    result = assert_proper_sync_response_with_result(
+        response=requests.post(
+            api_url_for(rotkehlchen_api_server, 'historyeventresource'),
+        ),
+    )
+
+    assert result['entries_found'] == 1
+    assert result['entries'][0]['entry']['gipuzkoa']['classification'] == expected
 
 
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
