@@ -4,21 +4,14 @@ import json
 import logging
 import tempfile
 from collections import Counter, defaultdict
-from datetime import datetime
 from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
-from zoneinfo import ZoneInfo
 
 from flask import Response, send_file
 from sqlcipher3 import dbapi2 as sqlcipher
 
-from rotkehlchen.accounting.constants import (
-    DEFAULT,
-    EVENT_CATEGORY_MAPPINGS,
-    EVENT_GROUPING_ORDER,
-    EXCHANGE,
-)
+from rotkehlchen.accounting.constants import EVENT_GROUPING_ORDER
 from rotkehlchen.accounting.debugimporter.json import DebugHistoryImporter
 from rotkehlchen.accounting.export.csv import CSVWriteError, dict_to_csv_file
 from rotkehlchen.accounting.export.report import export_pnl_report_csv_from_db
@@ -43,16 +36,12 @@ from rotkehlchen.db.history_events import DBHistoryEvents
 from rotkehlchen.db.utils import get_query_chunks
 from rotkehlchen.errors.misc import AccountingError, APIKeyNotAvailable, RemoteError
 from rotkehlchen.errors.serialization import DeserializationError
-from rotkehlchen.exchanges.constants import ALL_SUPPORTED_EXCHANGES, SUPPORTED_EXCHANGES
+from rotkehlchen.exchanges.constants import SUPPORTED_EXCHANGES
 from rotkehlchen.externalapis.gnosispay import init_gnosis_pay
 from rotkehlchen.globaldb.handler import GlobalDBHandler
+from rotkehlchen.gipuzkoa.history import get_gipuzkoa_history_metadata
 from rotkehlchen.history.events.structures.base import HistoryBaseEntryType
-from rotkehlchen.history.events.structures.types import (
-    EventCategoryGroup,
-    EventDirection,
-    HistoryEventSubType,
-    HistoryEventType,
-)
+from rotkehlchen.history.events.structures.types import HistoryEventSubType, HistoryEventType
 from rotkehlchen.history.events.utils import (
     generate_events_export_filename,
     history_event_to_staking_for_api,
@@ -140,41 +129,6 @@ def _split_matched_group(
         return [_sort_matched_group(matched_events_group)]
 
     return [_sort_matched_group(pair_events) for pair_events in pairs.values()]
-
-
-def _get_gipuzkoa_classification(event: HistoryBaseEntry) -> str:
-    """Return CryptoLedger's technical classification for a history event."""
-    category_mapping = EVENT_CATEGORY_MAPPINGS[event.event_type][event.event_subtype]
-
-    if (
-        EXCHANGE in category_mapping and
-        event.location in ALL_SUPPORTED_EXCHANGES
-    ):
-        category = category_mapping[EXCHANGE]
-    else:
-        category = category_mapping[DEFAULT]
-
-    if category.group == EventCategoryGroup.TRADE:
-        if category.direction == EventDirection.OUT:
-            return 'disposal'
-        if category.direction == EventDirection.IN:
-            return 'acquisition'
-        return 'unknown'
-
-    return {
-        EventCategoryGroup.TRANSFER: 'transfer',
-        EventCategoryGroup.CEX: 'transfer',
-        EventCategoryGroup.BRIDGE: 'transfer',
-        EventCategoryGroup.INCOME: 'income',
-        EventCategoryGroup.EXPENSE: 'expense',
-        EventCategoryGroup.LOSS: 'loss',
-        EventCategoryGroup.STAKING: 'staking',
-        EventCategoryGroup.DONATION: 'donation',
-        EventCategoryGroup.DEFI_DEPOSIT_WITHDRAW: 'defi',
-        EventCategoryGroup.DEFI_BORROW_REPAY: 'defi',
-        EventCategoryGroup.VALIDATOR: 'validator',
-        EventCategoryGroup.NFT: 'nft',
-    }.get(category.group, 'unknown')
 
 
 class HistoryService:
@@ -888,13 +842,7 @@ class HistoryService:
             # Keep Gipuzkoa-specific API data namespaced inside each history entry.
             # Adding it here limits the change to /history/events instead of changing
             # HistoryBaseEntry.serialize_for_api() globally.
-            serialized['entry']['gipuzkoa'] = {
-                'tax_year': datetime.fromtimestamp(
-                    ts_ms_to_sec(event.timestamp),
-                    tz=ZoneInfo('Europe/Madrid'),
-                ).year,
-                'classification': _get_gipuzkoa_classification(event),
-            }
+            serialized['entry']['gipuzkoa'] = get_gipuzkoa_history_metadata(event)
 
             if replacement_group_id is not None:
                 serialized['entry']['group_identifier'] = replacement_group_id
