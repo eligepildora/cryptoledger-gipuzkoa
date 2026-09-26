@@ -18,15 +18,24 @@ GIPUZKOA_TIMEZONE = ZoneInfo('Europe/Madrid')
 
 def _get_gipuzkoa_classification(event: HistoryBaseEntry) -> str:
     """Return CryptoLedger's technical classification for a history event."""
-    category_mapping = EVENT_CATEGORY_MAPPINGS[event.event_type][event.event_subtype]
+    event_type_mapping = EVENT_CATEGORY_MAPPINGS.get(event.event_type)
+    if event_type_mapping is None:
+        return 'unknown'
+
+    category_mapping = event_type_mapping.get(event.event_subtype)
+    if category_mapping is None:
+        return 'unknown'
 
     if (
         EXCHANGE in category_mapping and
         event.location in ALL_SUPPORTED_EXCHANGES
     ):
-        category = category_mapping[EXCHANGE]
+        category = category_mapping.get(EXCHANGE)
     else:
-        category = category_mapping[DEFAULT]
+        category = category_mapping.get(DEFAULT)
+
+    if category is None:
+        return 'unknown'
 
     if category.group == EventCategoryGroup.TRADE:
         if category.direction == EventDirection.OUT:

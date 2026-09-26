@@ -33,6 +33,7 @@ from rotkehlchen.db.filtering import HistoryEventFilterQuery
 from rotkehlchen.db.history_events import DBHistoryEvents
 from rotkehlchen.errors.asset import UnknownAsset
 from rotkehlchen.fval import FVal
+from rotkehlchen.gipuzkoa.history import _get_gipuzkoa_classification
 from rotkehlchen.history.events.structures.base import HistoryEvent
 from rotkehlchen.history.events.structures.bitcoin_event import BitcoinEvent
 from rotkehlchen.history.events.structures.eth2 import EthWithdrawalEvent
@@ -1621,6 +1622,23 @@ def test_gipuzkoa_classification_categories(
 
     assert result['entries_found'] == 1
     assert result['entries'][0]['entry']['gipuzkoa']['classification'] == expected
+
+
+def test_gipuzkoa_classification_unknown_mapping() -> None:
+    """Unknown rotki category mappings should safely fall back to unknown."""
+    event = HistoryEvent(
+        group_identifier='gipuzkoa-unknown-mapping-test',
+        sequence_index=0,
+        timestamp=TimestampMS(1700000000000),
+        location=Location.EXTERNAL,
+        event_type=HistoryEventType.RECEIVE,
+        event_subtype=HistoryEventSubType.REWARD,
+        asset=A_ETH,
+        amount=FVal('1'),
+    )
+
+    with patch('rotkehlchen.gipuzkoa.history.EVENT_CATEGORY_MAPPINGS', {}):
+        assert _get_gipuzkoa_classification(event) == 'unknown'
 
 
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
