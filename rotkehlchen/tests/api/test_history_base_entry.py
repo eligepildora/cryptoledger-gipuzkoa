@@ -1802,6 +1802,7 @@ def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
     assert entries[0]['entry']['gipuzkoa'] == {
         'tax_year': 2019,
         'classification': 'expense',
+        'technical_classification': 'expense',
     }
 
     assert len(entries[1]) == 3  # spend, receive, fee

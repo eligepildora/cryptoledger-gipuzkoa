@@ -62,10 +62,13 @@ def _get_gipuzkoa_classification(event: HistoryBaseEntry) -> str:
 
 def get_gipuzkoa_history_metadata(event: HistoryBaseEntry) -> dict[str, int | str]:
     """Return Gipuzkoa-specific metadata exposed by the history events API."""
+    technical_classification = _get_gipuzkoa_classification(event)
+
     return {
         'tax_year': datetime.fromtimestamp(
             ts_ms_to_sec(event.timestamp),
             tz=GIPUZKOA_TIMEZONE,
         ).year,
-        'classification': _get_gipuzkoa_classification(event),
+        'classification': technical_classification,
+        'technical_classification': technical_classification,
     }
