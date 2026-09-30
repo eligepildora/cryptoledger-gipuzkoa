@@ -1803,6 +1803,8 @@ def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
         'tax_year': 2019,
         'classification': 'expense',
         'technical_classification': 'expense',
+        'fiscal_classification': 'unknown',
+        'fiscal_ruleset': 'gipuzkoa-v1',
     }
 
     assert len(entries[1]) == 3  # spend, receive, fee

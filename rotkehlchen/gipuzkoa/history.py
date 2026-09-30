@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
 
 GIPUZKOA_TIMEZONE = ZoneInfo('Europe/Madrid')
+GIPUZKOA_FISCAL_RULESET = 'gipuzkoa-v1'
 
 
 def _get_gipuzkoa_classification(event: HistoryBaseEntry) -> str:
@@ -60,6 +61,15 @@ def _get_gipuzkoa_classification(event: HistoryBaseEntry) -> str:
     }.get(category.group, 'unknown')
 
 
+def _get_gipuzkoa_fiscal_classification(event: HistoryBaseEntry) -> str:
+    """Return the fiscal classification for a Gipuzkoa history event.
+
+    Fiscal rules are not implemented yet. Keep this explicit and conservative
+    until CryptoLedger has documented, versioned Gipuzkoa tax rules.
+    """
+    return 'unknown'
+
+
 def get_gipuzkoa_history_metadata(event: HistoryBaseEntry) -> dict[str, int | str]:
     """Return Gipuzkoa-specific metadata exposed by the history events API."""
     technical_classification = _get_gipuzkoa_classification(event)
@@ -71,4 +81,6 @@ def get_gipuzkoa_history_metadata(event: HistoryBaseEntry) -> dict[str, int | st
         ).year,
         'classification': technical_classification,
         'technical_classification': technical_classification,
+        'fiscal_classification': _get_gipuzkoa_fiscal_classification(event),
+        'fiscal_ruleset': GIPUZKOA_FISCAL_RULESET,
     }
