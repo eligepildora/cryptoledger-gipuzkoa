@@ -1586,6 +1586,42 @@ def test_gipuzkoa_tax_year_uses_local_timezone(
         Location.KRAKEN,
         'transfer',
     ),
+    (
+        HistoryEventType.STAKING,
+        HistoryEventSubType.DEPOSIT_ASSET,
+        Location.EXTERNAL,
+        'staking',
+    ),
+    (
+        HistoryEventType.LOSS,
+        HistoryEventSubType.NONE,
+        Location.EXTERNAL,
+        'loss',
+    ),
+    (
+        HistoryEventType.SPEND,
+        HistoryEventSubType.DONATE,
+        Location.EXTERNAL,
+        'donation',
+    ),
+    (
+        HistoryEventType.DEPOSIT,
+        HistoryEventSubType.DEPOSIT_TO_PROTOCOL,
+        Location.EXTERNAL,
+        'defi',
+    ),
+    (
+        HistoryEventType.MINT,
+        HistoryEventSubType.NFT,
+        Location.EXTERNAL,
+        'nft',
+    ),
+    (
+        HistoryEventType.INFORMATIONAL,
+        HistoryEventSubType.BLOCK_PRODUCTION,
+        Location.EXTERNAL,
+        'validator',
+    ),
 ])
 def test_gipuzkoa_classification_categories(
         rotkehlchen_api_server: APIServer,
