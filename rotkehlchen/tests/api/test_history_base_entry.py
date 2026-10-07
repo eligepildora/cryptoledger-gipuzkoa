@@ -1684,6 +1684,8 @@ def test_gipuzkoa_classification_unknown_mapping() -> None:
     ('disposal', 'capital_gain_or_loss_candidate'),
     ('acquisition', 'unknown'),
     ('income', 'income_requires_review'),
+    ('staking', 'staking_requires_review'),
+    ('validator', 'staking_requires_review'),
     ('transfer', 'unknown'),
     ('expense', 'unknown'),
 ])
