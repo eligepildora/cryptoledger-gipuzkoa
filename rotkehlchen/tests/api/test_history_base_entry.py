@@ -1686,7 +1686,7 @@ def test_gipuzkoa_classification_unknown_mapping() -> None:
     ('income', 'income_requires_review'),
     ('staking', 'staking_requires_review'),
     ('validator', 'staking_requires_review'),
-    ('transfer', 'unknown'),
+    ('transfer', 'transfer_requires_ownership_check'),
     ('expense', 'unknown'),
 ])
 def test_gipuzkoa_fiscal_classification(

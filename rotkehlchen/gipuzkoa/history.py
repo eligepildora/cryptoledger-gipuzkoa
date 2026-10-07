@@ -69,6 +69,8 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
     category depends on facts that are not represented by the technical label.
     Staking and validator rewards also require review because the technical
     category alone does not determine their final IRPF treatment.
+    A technical transfer requires an ownership check because moving an asset
+    between accounts does not by itself establish a change in beneficial ownership.
     """
     if technical_classification == 'disposal':
         return 'capital_gain_or_loss_candidate'
@@ -78,6 +80,9 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
 
     if technical_classification in {'staking', 'validator'}:
         return 'staking_requires_review'
+
+    if technical_classification == 'transfer':
+        return 'transfer_requires_ownership_check'
 
     return 'unknown'
 
