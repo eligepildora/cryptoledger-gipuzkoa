@@ -1690,6 +1690,7 @@ def test_gipuzkoa_classification_unknown_mapping() -> None:
     ('expense', 'expense_requires_deductibility_review'),
     ('loss', 'loss_requires_tax_review'),
     ('donation', 'donation_requires_tax_review'),
+    ('defi', 'defi_requires_protocol_review'),
 ])
 def test_gipuzkoa_fiscal_classification(
         technical_classification: str,

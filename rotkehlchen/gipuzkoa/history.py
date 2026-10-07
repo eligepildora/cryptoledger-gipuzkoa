@@ -77,6 +77,8 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
     for IRPF and the technical label does not establish their tax treatment.
     A technical donation requires tax review because gratuitous transfers can
     involve both IRPF consequences and succession/donation tax considerations.
+    A technical DeFi event requires protocol-level review because deposits,
+    withdrawals, borrowing, and repayment can have different tax consequences.
     """
     if technical_classification == 'disposal':
         return 'capital_gain_or_loss_candidate'
@@ -98,6 +100,9 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
 
     if technical_classification == 'donation':
         return 'donation_requires_tax_review'
+
+    if technical_classification == 'defi':
+        return 'defi_requires_protocol_review'
 
     return 'unknown'
 
