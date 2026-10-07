@@ -73,6 +73,8 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
     between accounts does not by itself establish a change in beneficial ownership.
     A technical expense requires a deductibility review because its tax treatment
     depends on the nature, purpose, and factual connection of the expense.
+    A technical loss requires tax review because some losses are not computable
+    for IRPF and the technical label does not establish their tax treatment.
     """
     if technical_classification == 'disposal':
         return 'capital_gain_or_loss_candidate'
@@ -88,6 +90,9 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
 
     if technical_classification == 'expense':
         return 'expense_requires_deductibility_review'
+
+    if technical_classification == 'loss':
+        return 'loss_requires_tax_review'
 
     return 'unknown'
 
