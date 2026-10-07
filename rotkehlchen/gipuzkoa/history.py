@@ -61,12 +61,16 @@ def _get_gipuzkoa_classification(event: HistoryBaseEntry) -> str:
     }.get(category.group, 'unknown')
 
 
-def _get_gipuzkoa_fiscal_classification(event: HistoryBaseEntry) -> str:
-    """Return the fiscal classification for a Gipuzkoa history event.
+def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
+    """Return CryptoLedger's preliminary Gipuzkoa fiscal classification.
 
-    Fiscal rules are not implemented yet. Keep this explicit and conservative
-    until CryptoLedger has documented, versioned Gipuzkoa tax rules.
+    A technical disposal is a candidate for capital gain or loss treatment.
+    This remains a candidate because taxpayer-specific facts, including whether
+    an asset is connected to an economic activity, can change the final tax treatment.
     """
+    if technical_classification == 'disposal':
+        return 'capital_gain_or_loss_candidate'
+
     return 'unknown'
 
 
@@ -81,6 +85,8 @@ def get_gipuzkoa_history_metadata(event: HistoryBaseEntry) -> dict[str, int | st
         ).year,
         'classification': technical_classification,
         'technical_classification': technical_classification,
-        'fiscal_classification': _get_gipuzkoa_fiscal_classification(event),
+        'fiscal_classification': _get_gipuzkoa_fiscal_classification(
+            technical_classification,
+        ),
         'fiscal_ruleset': GIPUZKOA_FISCAL_RULESET,
     }

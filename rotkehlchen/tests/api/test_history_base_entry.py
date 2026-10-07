@@ -33,7 +33,10 @@ from rotkehlchen.db.filtering import HistoryEventFilterQuery
 from rotkehlchen.db.history_events import DBHistoryEvents
 from rotkehlchen.errors.asset import UnknownAsset
 from rotkehlchen.fval import FVal
-from rotkehlchen.gipuzkoa.history import _get_gipuzkoa_classification
+from rotkehlchen.gipuzkoa.history import (
+    _get_gipuzkoa_classification,
+    _get_gipuzkoa_fiscal_classification,
+)
 from rotkehlchen.history.events.structures.base import HistoryEvent
 from rotkehlchen.history.events.structures.bitcoin_event import BitcoinEvent
 from rotkehlchen.history.events.structures.eth2 import EthWithdrawalEvent
@@ -1675,6 +1678,21 @@ def test_gipuzkoa_classification_unknown_mapping() -> None:
 
     with patch('rotkehlchen.gipuzkoa.history.EVENT_CATEGORY_MAPPINGS', {}):
         assert _get_gipuzkoa_classification(event) == 'unknown'
+
+
+@pytest.mark.parametrize(('technical_classification', 'expected'), [
+    ('disposal', 'capital_gain_or_loss_candidate'),
+    ('acquisition', 'unknown'),
+    ('income', 'unknown'),
+    ('transfer', 'unknown'),
+    ('expense', 'unknown'),
+])
+def test_gipuzkoa_fiscal_classification(
+        technical_classification: str,
+        expected: str,
+) -> None:
+    """Test the first versioned Gipuzkoa fiscal classification rule."""
+    assert _get_gipuzkoa_fiscal_classification(technical_classification) == expected
 
 
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
