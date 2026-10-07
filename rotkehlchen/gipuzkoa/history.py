@@ -75,6 +75,8 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
     depends on the nature, purpose, and factual connection of the expense.
     A technical loss requires tax review because some losses are not computable
     for IRPF and the technical label does not establish their tax treatment.
+    A technical donation requires tax review because gratuitous transfers can
+    involve both IRPF consequences and succession/donation tax considerations.
     """
     if technical_classification == 'disposal':
         return 'capital_gain_or_loss_candidate'
@@ -93,6 +95,9 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
 
     if technical_classification == 'loss':
         return 'loss_requires_tax_review'
+
+    if technical_classification == 'donation':
+        return 'donation_requires_tax_review'
 
     return 'unknown'
 
