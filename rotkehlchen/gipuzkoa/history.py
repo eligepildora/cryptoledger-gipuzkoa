@@ -79,6 +79,8 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
     involve both IRPF consequences and succession/donation tax considerations.
     A technical DeFi event requires protocol-level review because deposits,
     withdrawals, borrowing, and repayment can have different tax consequences.
+    A technical NFT event requires transaction-level review because minting,
+    acquiring, selling, and transferring an NFT can have different tax consequences.
     """
     if technical_classification == 'disposal':
         return 'capital_gain_or_loss_candidate'
@@ -103,6 +105,9 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
 
     if technical_classification == 'defi':
         return 'defi_requires_protocol_review'
+
+    if technical_classification == 'nft':
+        return 'nft_requires_transaction_review'
 
     return 'unknown'
 
