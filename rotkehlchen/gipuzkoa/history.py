@@ -65,11 +65,14 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
     """Return CryptoLedger's preliminary Gipuzkoa fiscal classification.
 
     A technical disposal is a candidate for capital gain or loss treatment.
-    This remains a candidate because taxpayer-specific facts, including whether
-    an asset is connected to an economic activity, can change the final tax treatment.
+    A technical income event requires further review because its final IRPF
+    category depends on facts that are not represented by the technical label.
     """
     if technical_classification == 'disposal':
         return 'capital_gain_or_loss_candidate'
+
+    if technical_classification == 'income':
+        return 'income_requires_review'
 
     return 'unknown'
 
