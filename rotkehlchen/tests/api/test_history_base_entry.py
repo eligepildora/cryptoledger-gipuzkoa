@@ -1687,7 +1687,7 @@ def test_gipuzkoa_classification_unknown_mapping() -> None:
     ('staking', 'staking_requires_review'),
     ('validator', 'staking_requires_review'),
     ('transfer', 'transfer_requires_ownership_check'),
-    ('expense', 'unknown'),
+    ('expense', 'expense_requires_deductibility_review'),
 ])
 def test_gipuzkoa_fiscal_classification(
         technical_classification: str,
@@ -1823,7 +1823,7 @@ def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
         'tax_year': 2019,
         'classification': 'expense',
         'technical_classification': 'expense',
-        'fiscal_classification': 'unknown',
+        'fiscal_classification': 'expense_requires_deductibility_review',
         'fiscal_ruleset': 'gipuzkoa-v1',
     }
 

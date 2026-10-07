@@ -71,6 +71,8 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
     category alone does not determine their final IRPF treatment.
     A technical transfer requires an ownership check because moving an asset
     between accounts does not by itself establish a change in beneficial ownership.
+    A technical expense requires a deductibility review because its tax treatment
+    depends on the nature, purpose, and factual connection of the expense.
     """
     if technical_classification == 'disposal':
         return 'capital_gain_or_loss_candidate'
@@ -83,6 +85,9 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
 
     if technical_classification == 'transfer':
         return 'transfer_requires_ownership_check'
+
+    if technical_classification == 'expense':
+        return 'expense_requires_deductibility_review'
 
     return 'unknown'
 
