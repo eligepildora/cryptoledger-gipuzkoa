@@ -1682,7 +1682,7 @@ def test_gipuzkoa_classification_unknown_mapping() -> None:
 
 @pytest.mark.parametrize(('technical_classification', 'expected'), [
     ('disposal', 'capital_gain_or_loss_candidate'),
-    ('acquisition', 'unknown'),
+    ('acquisition', 'acquisition_requires_source_review'),
     ('income', 'income_requires_review'),
     ('staking', 'staking_requires_review'),
     ('validator', 'staking_requires_review'),

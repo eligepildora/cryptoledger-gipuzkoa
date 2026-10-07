@@ -81,6 +81,8 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
     withdrawals, borrowing, and repayment can have different tax consequences.
     A technical NFT event requires transaction-level review because minting,
     acquiring, selling, and transferring an NFT can have different tax consequences.
+    A technical acquisition requires source review because purchases, swaps,
+    gratuitous acquisitions, and other sources can have different tax consequences.
     """
     if technical_classification == 'disposal':
         return 'capital_gain_or_loss_candidate'
@@ -108,6 +110,9 @@ def _get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
 
     if technical_classification == 'nft':
         return 'nft_requires_transaction_review'
+
+    if technical_classification == 'acquisition':
+        return 'acquisition_requires_source_review'
 
     return 'unknown'
 
