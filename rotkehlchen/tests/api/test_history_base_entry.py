@@ -33,9 +33,9 @@ from rotkehlchen.db.filtering import HistoryEventFilterQuery
 from rotkehlchen.db.history_events import DBHistoryEvents
 from rotkehlchen.errors.asset import UnknownAsset
 from rotkehlchen.fval import FVal
+from rotkehlchen.gipuzkoa.fiscal import get_gipuzkoa_fiscal_classification
 from rotkehlchen.gipuzkoa.history import (
     _get_gipuzkoa_classification,
-    _get_gipuzkoa_fiscal_classification,
 )
 from rotkehlchen.history.events.structures.base import HistoryEvent
 from rotkehlchen.history.events.structures.bitcoin_event import BitcoinEvent
@@ -1698,7 +1698,7 @@ def test_gipuzkoa_fiscal_classification(
         expected: str,
 ) -> None:
     """Test the first versioned Gipuzkoa fiscal classification rule."""
-    assert _get_gipuzkoa_fiscal_classification(technical_classification) == expected
+    assert get_gipuzkoa_fiscal_classification(technical_classification) == expected
 
 
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
