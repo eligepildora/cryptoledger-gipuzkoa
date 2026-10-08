@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from rotkehlchen.exchanges.constants import ALL_SUPPORTED_EXCHANGES
+
 if TYPE_CHECKING:
     from rotkehlchen.history.events.structures.base import HistoryBaseEntry
 
@@ -16,8 +18,7 @@ def get_gipuzkoa_fiscal_classification(
     """Return CryptoLedger's preliminary Gipuzkoa fiscal classification.
 
     The optional history event is available for rules that need more context than
-    the technical classification alone. Current rules intentionally preserve the
-    existing behavior and do not yet depend on event-specific fields.
+    the technical classification alone.
 
     A technical disposal is a candidate for capital gain or loss treatment.
     A technical income event requires further review because its final IRPF
@@ -38,6 +39,9 @@ def get_gipuzkoa_fiscal_classification(
     acquiring, selling, and transferring an NFT can have different tax consequences.
     A technical acquisition requires source review because purchases, swaps,
     gratuitous acquisitions, and other sources can have different tax consequences.
+    An acquisition recorded at a supported exchange requires trade-pair review
+    because the paired leg determines whether the acquisition was made against
+    fiat or another cryptoasset.
     """
     if technical_classification == 'disposal':
         return 'capital_gain_or_loss_candidate'
@@ -67,6 +71,9 @@ def get_gipuzkoa_fiscal_classification(
         return 'nft_requires_transaction_review'
 
     if technical_classification == 'acquisition':
+        if event is not None and event.location in ALL_SUPPORTED_EXCHANGES:
+            return 'acquisition_exchange_requires_trade_pair_review'
+
         return 'acquisition_requires_source_review'
 
     return 'unknown'

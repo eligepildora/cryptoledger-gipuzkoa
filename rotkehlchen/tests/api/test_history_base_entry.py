@@ -2,7 +2,7 @@ import random
 from collections import defaultdict
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
@@ -1699,6 +1699,17 @@ def test_gipuzkoa_fiscal_classification(
 ) -> None:
     """Test the first versioned Gipuzkoa fiscal classification rule."""
     assert get_gipuzkoa_fiscal_classification(technical_classification) == expected
+
+
+def test_gipuzkoa_acquisition_exchange_context() -> None:
+    """Test exchange context refines a technical acquisition."""
+    event = MagicMock()
+    event.location = Location.KRAKEN
+
+    assert get_gipuzkoa_fiscal_classification(
+        'acquisition',
+        event=event,
+    ) == 'acquisition_exchange_requires_trade_pair_review'
 
 
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
