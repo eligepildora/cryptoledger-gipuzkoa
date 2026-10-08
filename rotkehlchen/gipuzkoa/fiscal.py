@@ -1,11 +1,23 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from rotkehlchen.history.events.structures.base import HistoryBaseEntry
+
 
 GIPUZKOA_FISCAL_RULESET = 'gipuzkoa-v1'
 
 
-def get_gipuzkoa_fiscal_classification(technical_classification: str) -> str:
+def get_gipuzkoa_fiscal_classification(
+        technical_classification: str,
+        event: HistoryBaseEntry | None = None,
+) -> str:
     """Return CryptoLedger's preliminary Gipuzkoa fiscal classification.
+
+    The optional history event is available for rules that need more context than
+    the technical classification alone. Current rules intentionally preserve the
+    existing behavior and do not yet depend on event-specific fields.
 
     A technical disposal is a candidate for capital gain or loss treatment.
     A technical income event requires further review because its final IRPF

@@ -77,6 +77,7 @@ def get_gipuzkoa_history_metadata(event: HistoryBaseEntry) -> dict[str, int | st
         'technical_classification': technical_classification,
         'fiscal_classification': get_gipuzkoa_fiscal_classification(
             technical_classification,
+            event=event,
         ),
         'fiscal_ruleset': GIPUZKOA_FISCAL_RULESET,
     }
