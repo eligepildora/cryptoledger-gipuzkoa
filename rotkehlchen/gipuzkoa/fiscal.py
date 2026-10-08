@@ -4,7 +4,10 @@ from typing import TYPE_CHECKING
 
 from rotkehlchen.accounting.constants import DEFAULT, EVENT_CATEGORY_MAPPINGS, EXCHANGE
 from rotkehlchen.exchanges.constants import ALL_SUPPORTED_EXCHANGES
-from rotkehlchen.history.events.structures.types import EventCategoryGroup
+from rotkehlchen.history.events.structures.types import (
+    EventCategoryGroup,
+    HistoryEventType,
+)
 
 if TYPE_CHECKING:
     from rotkehlchen.history.events.structures.base import HistoryBaseEntry
@@ -67,6 +70,8 @@ def get_gipuzkoa_fiscal_classification(
     separate review categories when the event context identifies their group.
     A technical NFT event requires transaction-level review because minting,
     acquiring, selling, and transferring an NFT can have different tax consequences.
+    An NFT mint is kept as a separate review category because minting alone does
+    not establish whether value was received, created, or transferred.
     A technical acquisition requires source review because purchases, swaps,
     gratuitous acquisitions, and other sources can have different tax consequences.
     An acquisition recorded at a supported exchange requires trade-pair review
@@ -105,6 +110,9 @@ def get_gipuzkoa_fiscal_classification(
         return 'defi_requires_protocol_review'
 
     if technical_classification == 'nft':
+        if event is not None and event.event_type == HistoryEventType.MINT:
+            return 'nft_mint_requires_origin_review'
+
         return 'nft_requires_transaction_review'
 
     if technical_classification == 'acquisition':

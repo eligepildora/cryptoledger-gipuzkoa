@@ -1737,6 +1737,19 @@ def test_gipuzkoa_defi_context() -> None:
         ) == 'defi_borrow_repay_requires_protocol_review'
 
 
+def test_gipuzkoa_nft_mint_context() -> None:
+    """Test NFT mint events receive a specific review classification."""
+    from rotkehlchen.history.events.structures.types import HistoryEventType
+
+    event = MagicMock()
+    event.event_type = HistoryEventType.MINT
+
+    assert get_gipuzkoa_fiscal_classification(
+        'nft',
+        event=event,
+    ) == 'nft_mint_requires_origin_review'
+
+
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
     """Test that events are properly grouped into sub-lists
     when they are serialized for the api.
