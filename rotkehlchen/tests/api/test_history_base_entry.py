@@ -1847,6 +1847,29 @@ def test_gipuzkoa_loss_context() -> None:
     ) == 'loss_liquidity_provision_requires_tax_review'
 
 
+def test_gipuzkoa_donation_context() -> None:
+    """Test sent and received donations get distinct tax reviews."""
+    from rotkehlchen.history.events.structures.types import (
+        HistoryEventSubType,
+        HistoryEventType,
+    )
+
+    event = MagicMock()
+    event.event_subtype = HistoryEventSubType.DONATE
+
+    event.event_type = HistoryEventType.SPEND
+    assert get_gipuzkoa_fiscal_classification(
+        'donation',
+        event=event,
+    ) == 'donation_sent_requires_donor_tax_review'
+
+    event.event_type = HistoryEventType.RECEIVE
+    assert get_gipuzkoa_fiscal_classification(
+        'donation',
+        event=event,
+    ) == 'donation_received_requires_gift_tax_review'
+
+
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
     """Test that events are properly grouped into sub-lists
     when they are serialized for the api.

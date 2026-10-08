@@ -78,6 +78,8 @@ def get_gipuzkoa_fiscal_classification(
     categories because their factual origins differ and may affect tax treatment.
     A technical donation requires tax review because gratuitous transfers can
     involve both IRPF consequences and succession/donation tax considerations.
+    Sent and received donations are kept as distinct review categories because
+    the donor and recipient can face different tax consequences.
     A technical DeFi event requires protocol-level review because deposits,
     withdrawals, borrowing, and repayment can have different tax consequences.
     DeFi deposit/withdraw events and borrow/repay events are therefore kept as
@@ -140,6 +142,12 @@ def get_gipuzkoa_fiscal_classification(
         return 'loss_requires_tax_review'
 
     if technical_classification == 'donation':
+        if event is not None and event.event_subtype == HistoryEventSubType.DONATE:
+            if event.event_type == HistoryEventType.SPEND:
+                return 'donation_sent_requires_donor_tax_review'
+            if event.event_type == HistoryEventType.RECEIVE:
+                return 'donation_received_requires_gift_tax_review'
+
         return 'donation_requires_tax_review'
 
     if technical_classification == 'defi':
