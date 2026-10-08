@@ -1809,6 +1809,19 @@ def test_gipuzkoa_transfer_context() -> None:
         ) == 'transfer_exchange_requires_ownership_review'
 
 
+def test_gipuzkoa_expense_fee_context() -> None:
+    """Test fee expenses receive a specific deductibility review."""
+    from rotkehlchen.history.events.structures.types import HistoryEventSubType
+
+    event = MagicMock()
+    event.event_subtype = HistoryEventSubType.FEE
+
+    assert get_gipuzkoa_fiscal_classification(
+        'expense',
+        event=event,
+    ) == 'expense_fee_requires_deductibility_review'
+
+
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
     """Test that events are properly grouped into sub-lists
     when they are serialized for the api.
@@ -1935,7 +1948,7 @@ def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
         'tax_year': 2019,
         'classification': 'expense',
         'technical_classification': 'expense',
-        'fiscal_classification': 'expense_requires_deductibility_review',
+        'fiscal_classification': 'expense_fee_requires_deductibility_review',
         'fiscal_ruleset': 'gipuzkoa-v1',
     }
 

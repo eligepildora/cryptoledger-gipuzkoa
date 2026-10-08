@@ -70,6 +70,8 @@ def get_gipuzkoa_fiscal_classification(
     because their operational context differs while ownership still needs verification.
     A technical expense requires a deductibility review because its tax treatment
     depends on the nature, purpose, and factual connection of the expense.
+    Fee expenses are kept as a separate review category because identifying a
+    commission does not by itself establish that it is tax deductible.
     A technical loss requires tax review because some losses are not computable
     for IRPF and the technical label does not establish their tax treatment.
     A technical donation requires tax review because gratuitous transfers can
@@ -119,6 +121,9 @@ def get_gipuzkoa_fiscal_classification(
         return 'transfer_requires_ownership_check'
 
     if technical_classification == 'expense':
+        if event is not None and event.event_subtype == HistoryEventSubType.FEE:
+            return 'expense_fee_requires_deductibility_review'
+
         return 'expense_requires_deductibility_review'
 
     if technical_classification == 'loss':
