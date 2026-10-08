@@ -66,6 +66,8 @@ def get_gipuzkoa_fiscal_classification(
     and surrounding activity can affect their final tax treatment.
     A technical transfer requires an ownership check because moving an asset
     between accounts does not by itself establish a change in beneficial ownership.
+    Bridge transfers and CEX-related transfers are kept as distinct review categories
+    because their operational context differs while ownership still needs verification.
     A technical expense requires a deductibility review because its tax treatment
     depends on the nature, purpose, and factual connection of the expense.
     A technical loss requires tax review because some losses are not computable
@@ -108,6 +110,12 @@ def get_gipuzkoa_fiscal_classification(
         return 'staking_requires_review'
 
     if technical_classification == 'transfer':
+        if event is not None:
+            category_group = _get_gipuzkoa_event_category_group(event)
+            if category_group == EventCategoryGroup.BRIDGE:
+                return 'transfer_bridge_requires_ownership_review'
+            if category_group == EventCategoryGroup.CEX:
+                return 'transfer_exchange_requires_ownership_review'
         return 'transfer_requires_ownership_check'
 
     if technical_classification == 'expense':
