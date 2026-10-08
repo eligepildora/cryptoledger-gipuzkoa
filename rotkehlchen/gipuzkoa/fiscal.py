@@ -2,13 +2,41 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from rotkehlchen.accounting.constants import DEFAULT, EVENT_CATEGORY_MAPPINGS, EXCHANGE
 from rotkehlchen.exchanges.constants import ALL_SUPPORTED_EXCHANGES
+from rotkehlchen.history.events.structures.types import EventCategoryGroup
 
 if TYPE_CHECKING:
     from rotkehlchen.history.events.structures.base import HistoryBaseEntry
 
 
 GIPUZKOA_FISCAL_RULESET = 'gipuzkoa-v1'
+
+
+def _get_gipuzkoa_event_category_group(
+        event: HistoryBaseEntry,
+) -> EventCategoryGroup | None:
+    """Return rotki's resolved category group for a history event."""
+    event_type_mapping = EVENT_CATEGORY_MAPPINGS.get(event.event_type)
+    if event_type_mapping is None:
+        return None
+
+    category_mapping = event_type_mapping.get(event.event_subtype)
+    if category_mapping is None:
+        return None
+
+    if (
+        EXCHANGE in category_mapping and
+        event.location in ALL_SUPPORTED_EXCHANGES
+    ):
+        category = category_mapping.get(EXCHANGE)
+    else:
+        category = category_mapping.get(DEFAULT)
+
+    if category is None:
+        return None
+
+    return category.group
 
 
 def get_gipuzkoa_fiscal_classification(
@@ -35,6 +63,8 @@ def get_gipuzkoa_fiscal_classification(
     involve both IRPF consequences and succession/donation tax considerations.
     A technical DeFi event requires protocol-level review because deposits,
     withdrawals, borrowing, and repayment can have different tax consequences.
+    DeFi deposit/withdraw events and borrow/repay events are therefore kept as
+    separate review categories when the event context identifies their group.
     A technical NFT event requires transaction-level review because minting,
     acquiring, selling, and transferring an NFT can have different tax consequences.
     A technical acquisition requires source review because purchases, swaps,
@@ -65,6 +95,13 @@ def get_gipuzkoa_fiscal_classification(
         return 'donation_requires_tax_review'
 
     if technical_classification == 'defi':
+        if event is not None:
+            category_group = _get_gipuzkoa_event_category_group(event)
+            if category_group == EventCategoryGroup.DEFI_DEPOSIT_WITHDRAW:
+                return 'defi_deposit_withdraw_requires_protocol_review'
+            if category_group == EventCategoryGroup.DEFI_BORROW_REPAY:
+                return 'defi_borrow_repay_requires_protocol_review'
+
         return 'defi_requires_protocol_review'
 
     if technical_classification == 'nft':

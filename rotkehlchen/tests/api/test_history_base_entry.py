@@ -1712,6 +1712,31 @@ def test_gipuzkoa_acquisition_exchange_context() -> None:
     ) == 'acquisition_exchange_requires_trade_pair_review'
 
 
+def test_gipuzkoa_defi_context() -> None:
+    """Test DeFi event groups receive distinct review classifications."""
+    from rotkehlchen.history.events.structures.types import EventCategoryGroup
+
+    event = MagicMock()
+
+    with patch(
+        'rotkehlchen.gipuzkoa.fiscal._get_gipuzkoa_event_category_group',
+        return_value=EventCategoryGroup.DEFI_DEPOSIT_WITHDRAW,
+    ):
+        assert get_gipuzkoa_fiscal_classification(
+            'defi',
+            event=event,
+        ) == 'defi_deposit_withdraw_requires_protocol_review'
+
+    with patch(
+        'rotkehlchen.gipuzkoa.fiscal._get_gipuzkoa_event_category_group',
+        return_value=EventCategoryGroup.DEFI_BORROW_REPAY,
+    ):
+        assert get_gipuzkoa_fiscal_classification(
+            'defi',
+            event=event,
+        ) == 'defi_borrow_repay_requires_protocol_review'
+
+
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
     """Test that events are properly grouped into sub-lists
     when they are serialized for the api.
