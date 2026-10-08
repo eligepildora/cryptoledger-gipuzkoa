@@ -1822,6 +1822,31 @@ def test_gipuzkoa_expense_fee_context() -> None:
     ) == 'expense_fee_requires_deductibility_review'
 
 
+def test_gipuzkoa_loss_context() -> None:
+    """Test distinct technical loss causes receive specific tax reviews."""
+    from rotkehlchen.history.events.structures.types import HistoryEventSubType
+
+    event = MagicMock()
+
+    event.event_subtype = HistoryEventSubType.HACK
+    assert get_gipuzkoa_fiscal_classification(
+        'loss',
+        event=event,
+    ) == 'loss_hack_requires_tax_review'
+
+    event.event_subtype = HistoryEventSubType.LIQUIDATE
+    assert get_gipuzkoa_fiscal_classification(
+        'loss',
+        event=event,
+    ) == 'loss_liquidation_requires_tax_review'
+
+    event.event_subtype = HistoryEventSubType.LIQUIDITY_PROVISION_LOSS
+    assert get_gipuzkoa_fiscal_classification(
+        'loss',
+        event=event,
+    ) == 'loss_liquidity_provision_requires_tax_review'
+
+
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
     """Test that events are properly grouped into sub-lists
     when they are serialized for the api.

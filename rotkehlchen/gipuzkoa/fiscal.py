@@ -74,6 +74,8 @@ def get_gipuzkoa_fiscal_classification(
     commission does not by itself establish that it is tax deductible.
     A technical loss requires tax review because some losses are not computable
     for IRPF and the technical label does not establish their tax treatment.
+    Hack, liquidation, and liquidity-provision losses are kept as distinct review
+    categories because their factual origins differ and may affect tax treatment.
     A technical donation requires tax review because gratuitous transfers can
     involve both IRPF consequences and succession/donation tax considerations.
     A technical DeFi event requires protocol-level review because deposits,
@@ -127,6 +129,14 @@ def get_gipuzkoa_fiscal_classification(
         return 'expense_requires_deductibility_review'
 
     if technical_classification == 'loss':
+        if event is not None:
+            if event.event_subtype == HistoryEventSubType.HACK:
+                return 'loss_hack_requires_tax_review'
+            if event.event_subtype == HistoryEventSubType.LIQUIDATE:
+                return 'loss_liquidation_requires_tax_review'
+            if event.event_subtype == HistoryEventSubType.LIQUIDITY_PROVISION_LOSS:
+                return 'loss_liquidity_provision_requires_tax_review'
+
         return 'loss_requires_tax_review'
 
     if technical_classification == 'donation':
