@@ -1750,6 +1750,19 @@ def test_gipuzkoa_nft_mint_context() -> None:
     ) == 'nft_mint_requires_origin_review'
 
 
+def test_gipuzkoa_income_reward_context() -> None:
+    """Test reward income receives a specific review classification."""
+    from rotkehlchen.history.events.structures.types import HistoryEventSubType
+
+    event = MagicMock()
+    event.event_subtype = HistoryEventSubType.REWARD
+
+    assert get_gipuzkoa_fiscal_classification(
+        'income',
+        event=event,
+    ) == 'income_reward_requires_source_review'
+
+
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
     """Test that events are properly grouped into sub-lists
     when they are serialized for the api.

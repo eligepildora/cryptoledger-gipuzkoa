@@ -6,6 +6,7 @@ from rotkehlchen.accounting.constants import DEFAULT, EVENT_CATEGORY_MAPPINGS, E
 from rotkehlchen.exchanges.constants import ALL_SUPPORTED_EXCHANGES
 from rotkehlchen.history.events.structures.types import (
     EventCategoryGroup,
+    HistoryEventSubType,
     HistoryEventType,
 )
 
@@ -54,6 +55,9 @@ def get_gipuzkoa_fiscal_classification(
     A technical disposal is a candidate for capital gain or loss treatment.
     A technical income event requires further review because its final IRPF
     category depends on facts that are not represented by the technical label.
+    Reward income is kept as a separate review category because the event label
+    alone does not determine whether the final treatment belongs to capital income,
+    economic activity income, or another category.
     Staking and validator rewards also require review because the technical
     category alone does not determine their final IRPF treatment.
     A technical transfer requires an ownership check because moving an asset
@@ -82,6 +86,9 @@ def get_gipuzkoa_fiscal_classification(
         return 'capital_gain_or_loss_candidate'
 
     if technical_classification == 'income':
+        if event is not None and event.event_subtype == HistoryEventSubType.REWARD:
+            return 'income_reward_requires_source_review'
+
         return 'income_requires_review'
 
     if technical_classification in {'staking', 'validator'}:
