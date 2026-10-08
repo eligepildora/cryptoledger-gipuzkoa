@@ -1763,6 +1763,27 @@ def test_gipuzkoa_income_reward_context() -> None:
     ) == 'income_reward_requires_source_review'
 
 
+def test_gipuzkoa_staking_validator_context() -> None:
+    """Test staking deposits and validator rewards get distinct reviews."""
+    from rotkehlchen.history.events.structures.types import HistoryEventSubType
+
+    staking_event = MagicMock()
+    staking_event.event_subtype = HistoryEventSubType.DEPOSIT_ASSET
+
+    assert get_gipuzkoa_fiscal_classification(
+        'staking',
+        event=staking_event,
+    ) == 'staking_deposit_requires_ownership_review'
+
+    validator_event = MagicMock()
+    validator_event.event_subtype = HistoryEventSubType.BLOCK_PRODUCTION
+
+    assert get_gipuzkoa_fiscal_classification(
+        'validator',
+        event=validator_event,
+    ) == 'validator_reward_requires_source_review'
+
+
 def test_event_grouping(rotkehlchen_api_server: APIServer) -> None:
     """Test that events are properly grouped into sub-lists
     when they are serialized for the api.

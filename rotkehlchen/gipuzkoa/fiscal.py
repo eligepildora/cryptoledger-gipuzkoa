@@ -58,8 +58,12 @@ def get_gipuzkoa_fiscal_classification(
     Reward income is kept as a separate review category because the event label
     alone does not determine whether the final treatment belongs to capital income,
     economic activity income, or another category.
-    Staking and validator rewards also require review because the technical
+    Staking and validator events also require review because the technical
     category alone does not determine their final IRPF treatment.
+    A staking deposit is kept separate because locking or depositing an asset does
+    not by itself establish a change in beneficial ownership.
+    Validator block-production events are kept separate because the reward source
+    and surrounding activity can affect their final tax treatment.
     A technical transfer requires an ownership check because moving an asset
     between accounts does not by itself establish a change in beneficial ownership.
     A technical expense requires a deductibility review because its tax treatment
@@ -91,7 +95,16 @@ def get_gipuzkoa_fiscal_classification(
 
         return 'income_requires_review'
 
-    if technical_classification in {'staking', 'validator'}:
+    if technical_classification == 'staking':
+        if event is not None and event.event_subtype == HistoryEventSubType.DEPOSIT_ASSET:
+            return 'staking_deposit_requires_ownership_review'
+
+        return 'staking_requires_review'
+
+    if technical_classification == 'validator':
+        if event is not None and event.event_subtype == HistoryEventSubType.BLOCK_PRODUCTION:
+            return 'validator_reward_requires_source_review'
+
         return 'staking_requires_review'
 
     if technical_classification == 'transfer':
