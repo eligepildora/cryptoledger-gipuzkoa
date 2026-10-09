@@ -64,18 +64,43 @@ def aggregate_gipuzkoa_processed_disposals(
         main_currency: Asset,
 ) -> dict[int, GipuzkoaAnnualDisposalSummary]:
     """Calculate and aggregate processed disposal events by Gipuzkoa tax year."""
-    disposals = []
+    processed_events = list(events)
+    disposal_expenses_by_group: dict[str, FVal] = {}
 
-    for event in events:
+    for event in processed_events:
+        if (
+            event.event_type != AccountingEventType.FEE or
+            event.extra_data.get('direction') != EventDirection.OUT.serialize()
+        ):
+            continue
+
+        group_id = event.extra_data.get('group_id')
+        if not isinstance(group_id, str):
+            continue
+
+        fee_value_eur = (event.taxable_amount + event.free_amount) * event.price
+        disposal_expenses_by_group[group_id] = (
+            disposal_expenses_by_group.get(group_id, ZERO) + fee_value_eur
+        )
+
+    disposals = []
+    for event in processed_events:
         if (
             event.event_type != AccountingEventType.TRADE or
             event.extra_data.get('direction') != EventDirection.OUT.serialize()
         ):
             continue
 
+        group_id = event.extra_data.get('group_id')
+        disposal_expenses_eur = (
+            disposal_expenses_by_group.get(group_id, ZERO)
+            if isinstance(group_id, str)
+            else ZERO
+        )
         calculation = calculate_gipuzkoa_processed_disposal(
             event=event,
             main_currency=main_currency,
+            disposal_expenses_eur=disposal_expenses_eur,
         )
         disposals.append((event.timestamp, calculation))
 

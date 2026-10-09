@@ -121,3 +121,49 @@ def test_gipuzkoa_processed_disposals_ignore_non_trade_out_events() -> None:
     )
 
     assert summaries == {}
+
+def test_gipuzkoa_processed_disposal_uses_grouped_fee_as_expense() -> None:
+    cost_basis = SimpleNamespace(
+        is_complete=True,
+        matched_acquisitions=[
+            SimpleNamespace(
+                amount=FVal('2'),
+                event=SimpleNamespace(rate=FVal('1500')),
+            ),
+        ],
+    )
+    fee = SimpleNamespace(
+        event_type=AccountingEventType.FEE,
+        extra_data={
+            'direction': EventDirection.OUT.serialize(),
+            'group_id': 'swap-1',
+        },
+        timestamp=Timestamp(1748736000),
+        taxable_amount=FVal('0'),
+        free_amount=FVal('0.04'),
+        price=FVal('2500'),
+        cost_basis=None,
+    )
+    trade_out = SimpleNamespace(
+        event_type=AccountingEventType.TRADE,
+        extra_data={
+            'direction': EventDirection.OUT.serialize(),
+            'group_id': 'swap-1',
+        },
+        timestamp=Timestamp(1748736000),
+        taxable_amount=FVal('2'),
+        free_amount=FVal('0'),
+        price=FVal('2500'),
+        cost_basis=cost_basis,
+    )
+
+    summaries = aggregate_gipuzkoa_processed_disposals(
+        events=[fee, trade_out],
+        main_currency=A_EUR,
+    )
+
+    summary = summaries[2025]
+    assert summary.gross_gains_eur == FVal('1900')
+    assert summary.gross_losses_eur == FVal('0')
+    assert summary.net_gain_loss_eur == FVal('1900')
+    assert summary.disposal_count == 1
