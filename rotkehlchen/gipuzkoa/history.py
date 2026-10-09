@@ -1,23 +1,18 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING
-from zoneinfo import ZoneInfo
 
 from rotkehlchen.accounting.constants import DEFAULT, EVENT_CATEGORY_MAPPINGS, EXCHANGE
 from rotkehlchen.exchanges.constants import ALL_SUPPORTED_EXCHANGES
+from rotkehlchen.gipuzkoa.dates import get_gipuzkoa_tax_year_ms
 from rotkehlchen.gipuzkoa.fiscal import (
     GIPUZKOA_FISCAL_RULESET,
     get_gipuzkoa_fiscal_classification,
 )
 from rotkehlchen.history.events.structures.types import EventCategoryGroup, EventDirection
-from rotkehlchen.utils.misc import ts_ms_to_sec
 
 if TYPE_CHECKING:
     from rotkehlchen.history.events.structures.base import HistoryBaseEntry
-
-
-GIPUZKOA_TIMEZONE = ZoneInfo('Europe/Madrid')
 
 
 def _get_gipuzkoa_classification(event: HistoryBaseEntry) -> str:
@@ -69,10 +64,7 @@ def get_gipuzkoa_history_metadata(event: HistoryBaseEntry) -> dict[str, int | st
     technical_classification = _get_gipuzkoa_classification(event)
 
     return {
-        'tax_year': datetime.fromtimestamp(
-            ts_ms_to_sec(event.timestamp),
-            tz=GIPUZKOA_TIMEZONE,
-        ).year,
+        'tax_year': get_gipuzkoa_tax_year_ms(event.timestamp),
         'classification': technical_classification,
         'technical_classification': technical_classification,
         'fiscal_classification': get_gipuzkoa_fiscal_classification(
