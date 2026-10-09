@@ -5,6 +5,7 @@ import pytest
 from rotkehlchen.fval import FVal
 from rotkehlchen.gipuzkoa.calculation import (
     calculate_gipuzkoa_disposal,
+    calculate_gipuzkoa_processed_disposal,
     get_gipuzkoa_acquisition_cost_eur,
 )
 
@@ -60,4 +61,50 @@ def test_gipuzkoa_rejects_incomplete_cost_basis() -> None:
         match='Cannot calculate Gipuzkoa acquisition cost from incomplete cost basis',
     ):
         get_gipuzkoa_acquisition_cost_eur(cost_basis)
+
+
+def test_gipuzkoa_processed_disposal() -> None:
+    event = SimpleNamespace(
+        taxable_amount=FVal('1.5'),
+        free_amount=FVal('0.5'),
+        price=FVal('2500'),
+        cost_basis=SimpleNamespace(
+            is_complete=True,
+            matched_acquisitions=[
+                SimpleNamespace(
+                    amount=FVal('1'),
+                    event=SimpleNamespace(rate=FVal('1500')),
+                ),
+                SimpleNamespace(
+                    amount=FVal('1'),
+                    event=SimpleNamespace(rate=FVal('1800')),
+                ),
+            ],
+        ),
+    )
+
+    result = calculate_gipuzkoa_processed_disposal(
+        event=event,
+        disposal_expenses_eur=FVal('50'),
+    )
+
+    assert result.disposal_value_eur == FVal('5000')
+    assert result.acquisition_cost_eur == FVal('3300')
+    assert result.net_disposal_value_eur == FVal('4950')
+    assert result.gain_loss_eur == FVal('1650')
+
+
+def test_gipuzkoa_processed_disposal_requires_cost_basis() -> None:
+    event = SimpleNamespace(
+        taxable_amount=FVal('1'),
+        free_amount=FVal('0'),
+        price=FVal('2500'),
+        cost_basis=None,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match='Cannot calculate Gipuzkoa disposal without cost basis',
+    ):
+        calculate_gipuzkoa_processed_disposal(event)
 
