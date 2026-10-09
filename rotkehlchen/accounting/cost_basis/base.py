@@ -60,9 +60,17 @@ class AssetAcquisitionEvent:
         """May raise DeserializationError"""
         try:
             return cls(
-                amount=data['full_amount'],
+                amount=deserialize_fval(
+                    value=data['full_amount'],
+                    name='full_amount',
+                    location='asset acquisition event',
+                ),
                 timestamp=data['timestamp'],
-                rate=data['rate'],
+                rate=Price(deserialize_fval(
+                    value=data['rate'],
+                    name='rate',
+                    location='asset acquisition event',
+                )),
                 index=data['index'],
             )
         except KeyError as e:

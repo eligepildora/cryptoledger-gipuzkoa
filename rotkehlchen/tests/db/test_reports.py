@@ -1,6 +1,11 @@
 import json
 from typing import TYPE_CHECKING
 
+from rotkehlchen.accounting.cost_basis.base import (
+    AssetAcquisitionEvent,
+    CostBasisInfo,
+    MatchedAcquisition,
+)
 from rotkehlchen.accounting.mixins.event import AccountingEventType
 from rotkehlchen.accounting.pnl import PNL, PnlTotals
 from rotkehlchen.accounting.structures.processed_event import (
@@ -8,11 +13,12 @@ from rotkehlchen.accounting.structures.processed_event import (
     ProcessedAccountingEvent,
 )
 from rotkehlchen.constants import ONE, ZERO
-from rotkehlchen.constants.assets import A_DAI, A_ETH
+from rotkehlchen.constants.assets import A_DAI, A_ETH, A_EUR
 from rotkehlchen.db.filtering import ReportDataFilterQuery
 from rotkehlchen.db.reports import DBAccountingReports
 from rotkehlchen.db.settings import DBSettings
 from rotkehlchen.fval import FVal
+from rotkehlchen.gipuzkoa.summary import aggregate_gipuzkoa_processed_disposals
 from rotkehlchen.tests.utils.constants import (
     A_GBP,
     TEST_PREMIUM_PNL_EVENTS_LIMIT,
@@ -440,3 +446,94 @@ def test_get_report_data_unfiltered(database: DBHandler) -> None:
         'direction': 'out',
         'group_id': 'gipuzkoa-test',
     }
+
+
+def test_gipuzkoa_summary_from_persisted_report(database: DBHandler) -> None:
+    dbreport, settings = setup_db_account_settings(database)
+    acquisition_timestamp = Timestamp(1717200000)
+    disposal_timestamp = Timestamp(1748736000)
+
+    report_id = dbreport.add_report(
+        first_processed_timestamp=disposal_timestamp,
+        start_ts=disposal_timestamp,
+        end_ts=disposal_timestamp,
+        settings=settings,
+    )
+
+    acquisition_event = AssetAcquisitionEvent(
+        amount=FVal('2'),
+        timestamp=acquisition_timestamp,
+        rate=Price(FVal('1500')),
+        index=0,
+    )
+    cost_basis = CostBasisInfo(
+        taxable_amount=FVal('2'),
+        taxable_bought_cost=FVal('3000'),
+        taxfree_bought_cost=ZERO,
+        matched_acquisitions=[
+            MatchedAcquisition(
+                amount=FVal('2'),
+                event=acquisition_event,
+                taxable=True,
+            ),
+        ],
+        is_complete=True,
+    )
+
+    trade_event = ProcessedAccountingEvent(
+        event_type=AccountingEventType.TRADE,
+        notes='Gipuzkoa persisted disposal',
+        location=Location.EXTERNAL,
+        timestamp=disposal_timestamp,
+        asset=A_ETH,
+        free_amount=ZERO,
+        taxable_amount=FVal('2'),
+        price=Price(FVal('2500')),
+        pnl=PNL(),
+        cost_basis=cost_basis,
+        index=0,
+        extra_data={
+            'direction': 'out',
+            'group_id': 'gipuzkoa-persisted-swap',
+        },
+    )
+    fee_event = ProcessedAccountingEvent(
+        event_type=AccountingEventType.FEE,
+        notes='Gipuzkoa persisted disposal fee',
+        location=Location.EXTERNAL,
+        timestamp=disposal_timestamp,
+        asset=A_ETH,
+        free_amount=ZERO,
+        taxable_amount=FVal('0.04'),
+        price=Price(FVal('2500')),
+        pnl=PNL(),
+        cost_basis=None,
+        index=1,
+        extra_data={
+            'direction': 'out',
+            'group_id': 'gipuzkoa-persisted-swap',
+        },
+    )
+
+    for event in (trade_event, fee_event):
+        dbreport.add_report_data(
+            report_id=report_id,
+            time=event.timestamp,
+            ts_converter=timestamp_to_date,
+            event=event,
+        )
+
+    persisted_events = dbreport.get_report_data_unfiltered(report_id)
+    summaries = aggregate_gipuzkoa_processed_disposals(
+        events=persisted_events,
+        main_currency=A_EUR,
+    )
+
+    summary = summaries[2025]
+    assert summary.total_disposal_value_eur == FVal('5000')
+    assert summary.total_acquisition_cost_eur == FVal('3000')
+    assert summary.total_disposal_expenses_eur == FVal('100')
+    assert summary.gross_gains_eur == FVal('1900')
+    assert summary.gross_losses_eur == ZERO
+    assert summary.net_gain_loss_eur == FVal('1900')
+    assert summary.disposal_count == 1
