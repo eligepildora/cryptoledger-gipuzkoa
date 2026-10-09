@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from rotkehlchen.constants.assets import A_EUR, A_USD
 from rotkehlchen.fval import FVal
 from rotkehlchen.gipuzkoa.calculation import (
     calculate_gipuzkoa_disposal,
@@ -85,6 +86,7 @@ def test_gipuzkoa_processed_disposal() -> None:
 
     result = calculate_gipuzkoa_processed_disposal(
         event=event,
+        main_currency=A_EUR,
         disposal_expenses_eur=FVal('50'),
     )
 
@@ -106,5 +108,26 @@ def test_gipuzkoa_processed_disposal_requires_cost_basis() -> None:
         ValueError,
         match='Cannot calculate Gipuzkoa disposal without cost basis',
     ):
-        calculate_gipuzkoa_processed_disposal(event)
+        calculate_gipuzkoa_processed_disposal(event, main_currency=A_EUR)
+
+
+def test_gipuzkoa_processed_disposal_requires_eur() -> None:
+    event = SimpleNamespace(
+        taxable_amount=FVal('1'),
+        free_amount=FVal('0'),
+        price=FVal('2500'),
+        cost_basis=SimpleNamespace(
+            is_complete=True,
+            matched_acquisitions=[],
+        ),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match='Gipuzkoa disposal calculation requires EUR as main currency',
+    ):
+        calculate_gipuzkoa_processed_disposal(
+            event,
+            main_currency=A_USD,
+        )
 

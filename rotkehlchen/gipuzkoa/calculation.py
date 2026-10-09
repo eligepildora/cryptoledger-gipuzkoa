@@ -5,10 +5,12 @@ from typing import TYPE_CHECKING
 
 from rotkehlchen.accounting.cost_basis import CostBasisInfo
 from rotkehlchen.constants import ZERO
+from rotkehlchen.constants.assets import A_EUR
 from rotkehlchen.fval import FVal
 
 if TYPE_CHECKING:
     from rotkehlchen.accounting.structures.processed_event import ProcessedAccountingEvent
+    from rotkehlchen.assets.asset import Asset
 
 
 @dataclass(frozen=True)
@@ -68,6 +70,7 @@ def calculate_gipuzkoa_disposal(
 
 def calculate_gipuzkoa_processed_disposal(
         event: ProcessedAccountingEvent,
+        main_currency: Asset,
         disposal_expenses_eur: FVal = ZERO,
 ) -> GipuzkoaDisposalCalculation:
     """Calculate a Gipuzkoa disposal from a rotki processed accounting event.
@@ -76,6 +79,9 @@ def calculate_gipuzkoa_processed_disposal(
     Gipuzkoa fiscal treatment must be determined independently from other
     jurisdiction-specific accounting settings.
     """
+    if main_currency != A_EUR:
+        raise ValueError('Gipuzkoa disposal calculation requires EUR as main currency')
+
     if event.cost_basis is None:
         raise ValueError('Cannot calculate Gipuzkoa disposal without cost basis')
 
