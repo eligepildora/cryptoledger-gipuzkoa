@@ -148,6 +148,7 @@ from rotkehlchen.exchanges.utils import query_binance_exchange_pairs
 from rotkehlchen.externalapis.github import Github
 from rotkehlchen.feature_flags import is_accounting_update_enabled
 from rotkehlchen.fval import FVal
+from rotkehlchen.gipuzkoa.report import get_gipuzkoa_report_summary
 from rotkehlchen.globaldb.asset_updates.manager import ASSETS_VERSION_KEY
 from rotkehlchen.globaldb.handler import GlobalDBHandler
 from rotkehlchen.history.data_issues.constants import IssueState
@@ -2984,6 +2985,24 @@ class RestAPI:
             'entries_limit': entries_limit,
         })
         return api_response(process_result(result_dict), status_code=HTTPStatus.OK)
+
+    def get_gipuzkoa_report_summary(self, report_id: int) -> Response:
+        dbreports = DBAccountingReports(self.rotkehlchen.data.db)
+        try:
+            summary = get_gipuzkoa_report_summary(
+                dbreport=dbreports,
+                report_id=report_id,
+            )
+        except (InputError, ValueError) as e:
+            return api_response(
+                wrap_in_fail_result(str(e)),
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+
+        return api_response(
+            _wrap_in_ok_result(summary),
+            status_code=HTTPStatus.OK,
+        )
 
     def get_report_data(self, filter_query: ReportDataFilterQuery) -> Response:
         entries_limit, _ = get_user_limit(

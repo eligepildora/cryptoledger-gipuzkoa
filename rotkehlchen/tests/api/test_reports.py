@@ -12,6 +12,7 @@ from rotkehlchen.constants import ONE, ZERO
 from rotkehlchen.constants.assets import A_DAI, A_ETH
 from rotkehlchen.db.reports import DBAccountingReports
 from rotkehlchen.db.settings import DBSettings
+from rotkehlchen.errors.misc import InputError
 from rotkehlchen.fval import FVal
 from rotkehlchen.tests.utils.api import (
     api_url_for,
@@ -148,5 +149,88 @@ def test_get_report_data_invalid_report(
     assert_error_response(
         response=response,
         contained_in_msg='Tried to get PnL events from non existing report with id 1',
+        status_code=HTTPStatus.BAD_REQUEST,
+    )
+
+
+def test_get_gipuzkoa_report_summary(
+        rotkehlchen_api_server: APIServer,
+        monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected = [{
+        'tax_year': 2025,
+        'total_disposal_value_eur': '5000',
+        'total_acquisition_cost_eur': '3000',
+        'total_disposal_expenses_eur': '100',
+        'gross_gains_eur': '1900',
+        'gross_losses_eur': '0',
+        'net_gain_loss_eur': '1900',
+        'disposal_count': 1,
+    }]
+
+    monkeypatch.setattr(
+        'rotkehlchen.api.rest.get_gipuzkoa_report_summary',
+        lambda dbreport, report_id: expected,
+    )
+
+    response = requests.get(
+        api_url_for(
+            rotkehlchen_api_server,
+            'per_report_gipuzkoa_resource',
+            report_id=42,
+        ),
+    )
+
+    assert_proper_response(response)
+    data = response.json()
+    assert data['message'] == ''
+    assert data['result'] == expected
+
+
+@pytest.mark.parametrize(
+    ('exception', 'expected_message'),
+    [
+        (
+            InputError('PnL report with id 42 does not exist'),
+            'PnL report with id 42 does not exist',
+        ),
+        (
+            ValueError('Cannot calculate Gipuzkoa summary from incomplete report 42'),
+            'Cannot calculate Gipuzkoa summary from incomplete report 42',
+        ),
+        (
+            ValueError(
+                'Gipuzkoa report calculation requires EUR as profit currency. '
+                'Report 42 uses USD',
+            ),
+            'Gipuzkoa report calculation requires EUR as profit currency',
+        ),
+    ],
+)
+def test_get_gipuzkoa_report_summary_errors(
+        rotkehlchen_api_server: APIServer,
+        monkeypatch: pytest.MonkeyPatch,
+        exception: Exception,
+        expected_message: str,
+) -> None:
+    def raise_error(dbreport, report_id):
+        raise exception
+
+    monkeypatch.setattr(
+        'rotkehlchen.api.rest.get_gipuzkoa_report_summary',
+        raise_error,
+    )
+
+    response = requests.get(
+        api_url_for(
+            rotkehlchen_api_server,
+            'per_report_gipuzkoa_resource',
+            report_id=42,
+        ),
+    )
+
+    assert_error_response(
+        response=response,
+        contained_in_msg=expected_message,
         status_code=HTTPStatus.BAD_REQUEST,
     )

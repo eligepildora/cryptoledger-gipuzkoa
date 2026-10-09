@@ -1733,6 +1733,16 @@ class AccountingReportsResource(BaseMethodView):
         return self.rest_api.purge_pnl_report_data(report_id=report_id)
 
 
+class AccountingReportGipuzkoaResource(BaseMethodView):
+
+    get_schema = AccountingReportsSchema(required_report_id=True)
+
+    @require_loggedin_user()
+    @use_kwargs(get_schema, location='view_args')
+    def get(self, report_id: int) -> Response:
+        return self.rest_api.get_gipuzkoa_report_summary(report_id=report_id)
+
+
 class AccountingReportDataResource(BaseMethodView):
 
     post_schema = AccountingReportDataSchema()
