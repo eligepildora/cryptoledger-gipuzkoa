@@ -1,8 +1,6 @@
 from types import SimpleNamespace
 
-from rotkehlchen.constants.assets import A_EUR
-from types import SimpleNamespace
-
+from rotkehlchen.accounting.mixins.event import AccountingEventType
 from rotkehlchen.constants.assets import A_EUR
 from rotkehlchen.fval import FVal
 from rotkehlchen.gipuzkoa.calculation import calculate_gipuzkoa_disposal
@@ -10,6 +8,7 @@ from rotkehlchen.gipuzkoa.summary import (
     aggregate_gipuzkoa_disposals,
     aggregate_gipuzkoa_processed_disposals,
 )
+from rotkehlchen.history.events.structures.types import EventDirection
 from rotkehlchen.types import Timestamp
 
 
@@ -57,6 +56,8 @@ def test_gipuzkoa_disposals_are_separated_by_tax_year() -> None:
 
 def test_gipuzkoa_processed_disposals_are_aggregated() -> None:
     event = SimpleNamespace(
+        event_type=AccountingEventType.TRADE,
+        extra_data={'direction': EventDirection.OUT.serialize()},
         timestamp=Timestamp(1748736000),
         taxable_amount=FVal('2'),
         free_amount=FVal('0'),
@@ -82,3 +83,41 @@ def test_gipuzkoa_processed_disposals_are_aggregated() -> None:
     assert summary.gross_losses_eur == FVal('0')
     assert summary.net_gain_loss_eur == FVal('2000')
     assert summary.disposal_count == 1
+
+
+def test_gipuzkoa_processed_disposals_ignore_non_trade_out_events() -> None:
+    cost_basis = SimpleNamespace(
+        is_complete=True,
+        matched_acquisitions=[
+            SimpleNamespace(
+                amount=FVal('1'),
+                event=SimpleNamespace(rate=FVal('1000')),
+            ),
+        ],
+    )
+
+    trade_in = SimpleNamespace(
+        event_type=AccountingEventType.TRADE,
+        extra_data={'direction': EventDirection.IN.serialize()},
+        timestamp=Timestamp(1748736000),
+        taxable_amount=FVal('1'),
+        free_amount=FVal('0'),
+        price=FVal('2000'),
+        cost_basis=cost_basis,
+    )
+    fee_out = SimpleNamespace(
+        event_type=AccountingEventType.FEE,
+        extra_data={'direction': EventDirection.OUT.serialize()},
+        timestamp=Timestamp(1748736000),
+        taxable_amount=FVal('1'),
+        free_amount=FVal('0'),
+        price=FVal('2000'),
+        cost_basis=cost_basis,
+    )
+
+    summaries = aggregate_gipuzkoa_processed_disposals(
+        events=[trade_in, fee_out],
+        main_currency=A_EUR,
+    )
+
+    assert summaries == {}

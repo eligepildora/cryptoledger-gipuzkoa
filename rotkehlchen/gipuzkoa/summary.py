@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Iterable
 
+from rotkehlchen.accounting.mixins.event import AccountingEventType
 from rotkehlchen.constants import ZERO
 from rotkehlchen.fval import FVal
 from rotkehlchen.gipuzkoa.calculation import (
@@ -8,6 +9,7 @@ from rotkehlchen.gipuzkoa.calculation import (
     calculate_gipuzkoa_processed_disposal,
 )
 from rotkehlchen.gipuzkoa.dates import get_gipuzkoa_tax_year
+from rotkehlchen.history.events.structures.types import EventDirection
 from rotkehlchen.types import Timestamp
 
 if TYPE_CHECKING:
@@ -65,6 +67,12 @@ def aggregate_gipuzkoa_processed_disposals(
     disposals = []
 
     for event in events:
+        if (
+            event.event_type != AccountingEventType.TRADE or
+            event.extra_data.get('direction') != EventDirection.OUT.serialize()
+        ):
+            continue
+
         calculation = calculate_gipuzkoa_processed_disposal(
             event=event,
             main_currency=main_currency,
