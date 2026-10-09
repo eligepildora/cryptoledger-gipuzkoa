@@ -22,6 +22,9 @@ class GipuzkoaAnnualDisposalSummary:
     """Aggregated cryptoasset disposal results for one Gipuzkoa tax year."""
 
     tax_year: int
+    total_disposal_value_eur: FVal
+    total_acquisition_cost_eur: FVal
+    total_disposal_expenses_eur: FVal
     gross_gains_eur: FVal
     gross_losses_eur: FVal
     net_gain_loss_eur: FVal
@@ -41,12 +44,19 @@ def aggregate_gipuzkoa_disposals(
         if summary is None:
             summary = GipuzkoaAnnualDisposalSummary(
                 tax_year=tax_year,
+                total_disposal_value_eur=ZERO,
+                total_acquisition_cost_eur=ZERO,
+                total_disposal_expenses_eur=ZERO,
                 gross_gains_eur=ZERO,
                 gross_losses_eur=ZERO,
                 net_gain_loss_eur=ZERO,
                 disposal_count=0,
             )
             summaries[tax_year] = summary
+
+        summary.total_disposal_value_eur += calculation.disposal_value_eur
+        summary.total_acquisition_cost_eur += calculation.acquisition_cost_eur
+        summary.total_disposal_expenses_eur += calculation.disposal_expenses_eur
 
         if calculation.gain_loss_eur >= ZERO:
             summary.gross_gains_eur += calculation.gain_loss_eur

@@ -30,6 +30,9 @@ def test_gipuzkoa_annual_disposal_summary() -> None:
     ])
 
     summary = summaries[2025]
+    assert summary.total_disposal_value_eur == FVal('15000')
+    assert summary.total_acquisition_cost_eur == FVal('13000')
+    assert summary.total_disposal_expenses_eur == FVal('150')
     assert summary.gross_gains_eur == FVal('2900')
     assert summary.gross_losses_eur == FVal('1050')
     assert summary.net_gain_loss_eur == FVal('1850')
@@ -163,6 +166,9 @@ def test_gipuzkoa_processed_disposal_uses_grouped_fee_as_expense() -> None:
     )
 
     summary = summaries[2025]
+    assert summary.total_disposal_value_eur == FVal('5000')
+    assert summary.total_acquisition_cost_eur == FVal('3000')
+    assert summary.total_disposal_expenses_eur == FVal('100')
     assert summary.gross_gains_eur == FVal('1900')
     assert summary.gross_losses_eur == FVal('0')
     assert summary.net_gain_loss_eur == FVal('1900')
@@ -221,6 +227,9 @@ def test_gipuzkoa_processed_disposal_sums_multiple_grouped_fees() -> None:
     )
 
     summary = summaries[2025]
+    assert summary.total_disposal_value_eur == FVal('5000')
+    assert summary.total_acquisition_cost_eur == FVal('3000')
+    assert summary.total_disposal_expenses_eur == FVal('75')
     assert summary.gross_gains_eur == FVal('1925')
     assert summary.net_gain_loss_eur == FVal('1925')
     assert summary.disposal_count == 1
@@ -270,4 +279,3 @@ def test_gipuzkoa_processed_disposal_ignores_fee_from_other_group() -> None:
     assert summary.gross_gains_eur == FVal('2000')
     assert summary.net_gain_loss_eur == FVal('2000')
     assert summary.disposal_count == 1
-
