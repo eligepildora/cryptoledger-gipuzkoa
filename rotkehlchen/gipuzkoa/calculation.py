@@ -88,4 +88,3 @@ def calculate_gipuzkoa_processed_disposal(
         acquisition_cost_eur=acquisition_cost_eur,
         disposal_expenses_eur=disposal_expenses_eur,
     )
-
