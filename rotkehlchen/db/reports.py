@@ -307,6 +307,45 @@ class DBAccountingReports:
             event=event,
         )])
 
+    def get_report_data_unfiltered(
+            self,
+            report_id: int,
+    ) -> list[ProcessedAccountingEvent]:
+        """Return every processed accounting event stored for a report.
+
+        This intentionally bypasses API filtering, pagination and user limits so
+        consumers that calculate report-wide totals always operate on the
+        complete persisted report.
+        """
+        with self.db.conn_transient.cursor() as cursor:
+            query_result = cursor.execute(
+                'SELECT COUNT(*) FROM pnl_reports WHERE identifier=?',
+                (report_id,),
+            )
+            if query_result.fetchone()[0] != 1:
+                raise InputError(
+                    f'Tried to get PnL events from non existing report with id {report_id}',
+                )
+
+            cursor.execute(
+                'SELECT timestamp, data FROM pnl_events WHERE report_id=? ORDER BY timestamp',
+                (report_id,),
+            )
+            records = []
+            for timestamp, data in cursor:
+                try:
+                    record = ProcessedAccountingEvent.deserialize_from_db(timestamp, data)
+                except DeserializationError as e:
+                    self.db.msg_aggregator.add_error(
+                        f'Error deserializing AccountingEvent from the DB. Skipping it.'
+                        f'Error was: {e!s}',
+                    )
+                    continue
+
+                records.append(record)
+
+        return records
+
     def get_report_data(
             self,
             filter_: ReportDataFilterQuery,

@@ -346,3 +346,97 @@ def test_deserialize_event_with_null_notes_can_be_csv_exported(database: DBHandl
     )
     assert restored.notes == ''
     assert exported['notes'] == ''
+
+def test_get_report_data_unfiltered(database: DBHandler) -> None:
+    dbreport, settings = setup_db_account_settings(database)
+    timestamp_one = Timestamp(1741634066)
+    timestamp_two = Timestamp(1741634100)
+
+    report_id = dbreport.add_report(
+        first_processed_timestamp=timestamp_one,
+        start_ts=timestamp_one,
+        end_ts=timestamp_two,
+        settings=settings,
+    )
+    other_report_id = dbreport.add_report(
+        first_processed_timestamp=timestamp_one,
+        start_ts=timestamp_one,
+        end_ts=timestamp_two,
+        settings=settings,
+    )
+
+    events = [
+        ProcessedAccountingEvent(
+            event_type=AccountingEventType.TRADE,
+            notes='First report event',
+            location=Location.EXTERNAL,
+            timestamp=timestamp_one,
+            asset=A_ETH,
+            free_amount=ZERO,
+            taxable_amount=ONE,
+            price=Price(FVal('2000')),
+            pnl=PNL(),
+            cost_basis=None,
+            index=0,
+            extra_data={'direction': 'out', 'group_id': 'gipuzkoa-test'},
+        ),
+        ProcessedAccountingEvent(
+            event_type=AccountingEventType.FEE,
+            notes='First report fee',
+            location=Location.EXTERNAL,
+            timestamp=timestamp_two,
+            asset=A_ETH,
+            free_amount=ZERO,
+            taxable_amount=FVal('0.01'),
+            price=Price(FVal('2000')),
+            pnl=PNL(),
+            cost_basis=None,
+            index=1,
+            extra_data={'direction': 'out', 'group_id': 'gipuzkoa-test'},
+        ),
+    ]
+
+    for event in events:
+        dbreport.add_report_data(
+            report_id=report_id,
+            time=event.timestamp,
+            ts_converter=timestamp_to_date,
+            event=event,
+        )
+
+    other_event = ProcessedAccountingEvent(
+        event_type=AccountingEventType.TRADE,
+        notes='Other report event',
+        location=Location.EXTERNAL,
+        timestamp=timestamp_one,
+        asset=A_DAI,
+        free_amount=ZERO,
+        taxable_amount=ONE,
+        price=Price(ONE),
+        pnl=PNL(),
+        cost_basis=None,
+        index=0,
+        extra_data={'direction': 'out'},
+    )
+    dbreport.add_report_data(
+        report_id=other_report_id,
+        time=other_event.timestamp,
+        ts_converter=timestamp_to_date,
+        event=other_event,
+    )
+
+    result = dbreport.get_report_data_unfiltered(report_id)
+
+    assert len(result) == 2
+    assert [event.notes for event in result] == [
+        'First report event',
+        'First report fee',
+    ]
+    assert result[0].extra_data == {
+        'direction': 'out',
+        'group_id': 'gipuzkoa-test',
+    }
+    assert result[1].extra_data == {
+        'direction': 'out',
+        'group_id': 'gipuzkoa-test',
+    }
