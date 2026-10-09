@@ -5,11 +5,16 @@ import pytest
 import requests
 
 from rotkehlchen.accounting.constants import FREE_PNL_EVENTS_LIMIT
+from rotkehlchen.accounting.cost_basis.base import (
+    AssetAcquisitionEvent,
+    CostBasisInfo,
+    MatchedAcquisition,
+)
 from rotkehlchen.accounting.mixins.event import AccountingEventType
 from rotkehlchen.accounting.pnl import PNL
 from rotkehlchen.accounting.structures.processed_event import ProcessedAccountingEvent
 from rotkehlchen.constants import ONE, ZERO
-from rotkehlchen.constants.assets import A_DAI, A_ETH
+from rotkehlchen.constants.assets import A_DAI, A_ETH, A_EUR
 from rotkehlchen.db.reports import DBAccountingReports
 from rotkehlchen.db.settings import DBSettings
 from rotkehlchen.errors.misc import InputError
@@ -234,3 +239,113 @@ def test_get_gipuzkoa_report_summary_errors(
         contained_in_msg=expected_message,
         status_code=HTTPStatus.BAD_REQUEST,
     )
+
+def test_get_gipuzkoa_report_summary_end_to_end(
+        rotkehlchen_api_server: APIServer,
+) -> None:
+    database = rotkehlchen_api_server.rest_api.rotkehlchen.data.db
+    dbreport = DBAccountingReports(database)
+    acquisition_timestamp = Timestamp(1717200000)
+    disposal_timestamp = Timestamp(1748736000)
+
+    settings = DBSettings(
+        main_currency=A_EUR,
+        calculate_past_cost_basis=False,
+        include_gas_costs=False,
+        pnl_csv_have_summary=False,
+        pnl_csv_with_formulas=True,
+        taxfree_after_period=15,
+    )
+    report_id = dbreport.add_report(
+        first_processed_timestamp=disposal_timestamp,
+        start_ts=disposal_timestamp,
+        end_ts=disposal_timestamp,
+        settings=settings,
+    )
+
+    acquisition_event = AssetAcquisitionEvent(
+        amount=FVal('2'),
+        timestamp=acquisition_timestamp,
+        rate=Price(FVal('1500')),
+        index=0,
+    )
+    cost_basis = CostBasisInfo(
+        taxable_amount=FVal('2'),
+        taxable_bought_cost=FVal('3000'),
+        taxfree_bought_cost=ZERO,
+        matched_acquisitions=[
+            MatchedAcquisition(
+                amount=FVal('2'),
+                event=acquisition_event,
+                taxable=True,
+            ),
+        ],
+        is_complete=True,
+    )
+
+    events = [
+        ProcessedAccountingEvent(
+            event_type=AccountingEventType.TRADE,
+            notes='Gipuzkoa API disposal',
+            location=Location.EXTERNAL,
+            timestamp=disposal_timestamp,
+            asset=A_ETH,
+            free_amount=ZERO,
+            taxable_amount=FVal('2'),
+            price=Price(FVal('2500')),
+            pnl=PNL(),
+            cost_basis=cost_basis,
+            index=0,
+            extra_data={
+                'direction': 'out',
+                'group_id': 'gipuzkoa-api-swap',
+            },
+        ),
+        ProcessedAccountingEvent(
+            event_type=AccountingEventType.FEE,
+            notes='Gipuzkoa API disposal fee',
+            location=Location.EXTERNAL,
+            timestamp=disposal_timestamp,
+            asset=A_ETH,
+            free_amount=ZERO,
+            taxable_amount=FVal('0.04'),
+            price=Price(FVal('2500')),
+            pnl=PNL(),
+            cost_basis=None,
+            index=1,
+            extra_data={
+                'direction': 'out',
+                'group_id': 'gipuzkoa-api-swap',
+            },
+        ),
+    ]
+
+    for event in events:
+        dbreport.add_report_data(
+            report_id=report_id,
+            time=event.timestamp,
+            ts_converter=timestamp_to_date,
+            event=event,
+        )
+
+    response = requests.get(
+        api_url_for(
+            rotkehlchen_api_server,
+            'per_report_gipuzkoa_resource',
+            report_id=report_id,
+        ),
+    )
+
+    assert_proper_response(response)
+    data = response.json()
+    assert data['message'] == ''
+    assert data['result'] == [{
+        'tax_year': 2025,
+        'total_disposal_value_eur': '5000',
+        'total_acquisition_cost_eur': '3000',
+        'total_disposal_expenses_eur': '100',
+        'gross_gains_eur': '1900',
+        'gross_losses_eur': '0',
+        'net_gain_loss_eur': '1900',
+        'disposal_count': 1,
+    }]
