@@ -1,6 +1,15 @@
+from types import SimpleNamespace
+
+from rotkehlchen.constants.assets import A_EUR
+from types import SimpleNamespace
+
+from rotkehlchen.constants.assets import A_EUR
 from rotkehlchen.fval import FVal
 from rotkehlchen.gipuzkoa.calculation import calculate_gipuzkoa_disposal
-from rotkehlchen.gipuzkoa.summary import aggregate_gipuzkoa_disposals
+from rotkehlchen.gipuzkoa.summary import (
+    aggregate_gipuzkoa_disposals,
+    aggregate_gipuzkoa_processed_disposals,
+)
 from rotkehlchen.types import Timestamp
 
 
@@ -44,3 +53,32 @@ def test_gipuzkoa_disposals_are_separated_by_tax_year() -> None:
     assert summaries[2024].disposal_count == 1
     assert summaries[2025].net_gain_loss_eur == FVal('1000')
     assert summaries[2025].disposal_count == 1
+
+
+def test_gipuzkoa_processed_disposals_are_aggregated() -> None:
+    event = SimpleNamespace(
+        timestamp=Timestamp(1748736000),
+        taxable_amount=FVal('2'),
+        free_amount=FVal('0'),
+        price=FVal('2500'),
+        cost_basis=SimpleNamespace(
+            is_complete=True,
+            matched_acquisitions=[
+                SimpleNamespace(
+                    amount=FVal('2'),
+                    event=SimpleNamespace(rate=FVal('1500')),
+                ),
+            ],
+        ),
+    )
+
+    summaries = aggregate_gipuzkoa_processed_disposals(
+        events=[event],
+        main_currency=A_EUR,
+    )
+
+    summary = summaries[2025]
+    assert summary.gross_gains_eur == FVal('2000')
+    assert summary.gross_losses_eur == FVal('0')
+    assert summary.net_gain_loss_eur == FVal('2000')
+    assert summary.disposal_count == 1

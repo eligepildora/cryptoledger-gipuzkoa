@@ -1,11 +1,18 @@
 from dataclasses import dataclass
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable
 
 from rotkehlchen.constants import ZERO
 from rotkehlchen.fval import FVal
-from rotkehlchen.gipuzkoa.calculation import GipuzkoaDisposalCalculation
+from rotkehlchen.gipuzkoa.calculation import (
+    GipuzkoaDisposalCalculation,
+    calculate_gipuzkoa_processed_disposal,
+)
 from rotkehlchen.gipuzkoa.dates import get_gipuzkoa_tax_year
 from rotkehlchen.types import Timestamp
+
+if TYPE_CHECKING:
+    from rotkehlchen.accounting.structures.processed_event import ProcessedAccountingEvent
+    from rotkehlchen.assets.asset import Asset
 
 
 @dataclass
@@ -48,3 +55,20 @@ def aggregate_gipuzkoa_disposals(
         summary.disposal_count += 1
 
     return summaries
+
+
+def aggregate_gipuzkoa_processed_disposals(
+        events: Iterable[ProcessedAccountingEvent],
+        main_currency: Asset,
+) -> dict[int, GipuzkoaAnnualDisposalSummary]:
+    """Calculate and aggregate processed disposal events by Gipuzkoa tax year."""
+    disposals = []
+
+    for event in events:
+        calculation = calculate_gipuzkoa_processed_disposal(
+            event=event,
+            main_currency=main_currency,
+        )
+        disposals.append((event.timestamp, calculation))
+
+    return aggregate_gipuzkoa_disposals(disposals)
