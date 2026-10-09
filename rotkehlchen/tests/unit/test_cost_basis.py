@@ -10,6 +10,7 @@ from rotkehlchen.accounting.cost_basis import AssetAcquisitionEvent
 from rotkehlchen.accounting.export.csv import FILENAME_ALL_CSV, CSVExporter
 from rotkehlchen.accounting.mixins.event import AccountingEventType
 from rotkehlchen.accounting.pnl import PNL, PnlTotals
+from rotkehlchen.accounting.structures.processed_event import ProcessedAccountingEvent
 from rotkehlchen.accounting.types import MissingAcquisition
 from rotkehlchen.assets.asset import Asset
 from rotkehlchen.chain.evm.accounting.structures import BaseEventSettings, TxAccountingTreatment
@@ -1559,3 +1560,62 @@ def test_asset_collections_enabled(accountant: Accountant) -> None:
     )
     assert result is True
     assert len(cost_basis.missing_acquisitions) == 0
+
+@pytest.mark.parametrize('accounting_initialize_parameters', [True])
+def test_out_event_preserves_originating_event_id(accountant: Accountant) -> None:
+    pot = accountant.pots[0]
+
+    pot.add_out_event(
+        originating_event_id=123,
+        event_type=AccountingEventType.TRANSACTION_EVENT,
+        notes='Test originating event id',
+        location=Location.BLOCKCHAIN,
+        timestamp=EXAMPLE_TIMESTAMP,
+        asset=A_ETH,
+        amount=ONE,
+        taxable=False,
+        given_price=ONE_PRICE,
+        count_entire_amount_spend=False,
+        count_cost_basis_pnl=False,
+        extra_data={'tx_ref': 'abc'},
+    )
+
+    assert len(pot.processed_events) == 1
+    processed_event = pot.processed_events[0]
+    assert processed_event.extra_data['originating_event_id'] == 123
+    assert processed_event.extra_data['direction'] == 'out'
+    assert processed_event.extra_data['tx_ref'] == 'abc'
+
+@pytest.mark.parametrize('accounting_initialize_parameters', [True])
+def test_out_event_originating_event_id_survives_serialization(
+        accountant: Accountant,
+) -> None:
+    pot = accountant.pots[0]
+
+    pot.add_out_event(
+        originating_event_id=123,
+        event_type=AccountingEventType.TRANSACTION_EVENT,
+        notes='Test originating event id persistence',
+        location=Location.BLOCKCHAIN,
+        timestamp=EXAMPLE_TIMESTAMP,
+        asset=A_ETH,
+        amount=ONE,
+        taxable=False,
+        given_price=ONE_PRICE,
+        count_entire_amount_spend=False,
+        count_cost_basis_pnl=False,
+        extra_data={'tx_ref': 'abc'},
+    )
+
+    original_event = pot.processed_events[0]
+    serialized = original_event.serialize_for_db(
+        ts_converter=lambda timestamp: str(timestamp),
+    )
+    recovered_event = ProcessedAccountingEvent.deserialize_from_db(
+        timestamp=original_event.timestamp,
+        stringified_json=serialized,
+    )
+
+    assert recovered_event.extra_data['originating_event_id'] == 123
+    assert recovered_event.extra_data['direction'] == 'out'
+    assert recovered_event.extra_data['tx_ref'] == 'abc'

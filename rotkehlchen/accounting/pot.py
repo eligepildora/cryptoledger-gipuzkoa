@@ -383,10 +383,15 @@ class AccountingPot(CustomizableDateMixin):
             cost_basis=spend_cost,
             index=len(self.processed_events),
         )
-        if extra_data:
-            spend_event.extra_data = extra_data | {'direction': EventDirection.OUT.serialize()}
-        else:
-            spend_event.extra_data['direction'] = EventDirection.OUT.serialize()
+        processed_extra_data = extra_data or {}
+        if originating_event_id is not None:
+            processed_extra_data = processed_extra_data | {
+                'originating_event_id': originating_event_id,
+            }
+
+        spend_event.extra_data = processed_extra_data | {
+            'direction': EventDirection.OUT.serialize(),
+        }
         # count profit/losses if we are inside the query period
         if timestamp >= self.query_start_ts and taxable:
             self.pnls[event_type] += spend_event.calculate_pnl(
