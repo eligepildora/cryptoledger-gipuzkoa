@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from rotkehlchen.accounting.cost_basis import CostBasisInfo
+from rotkehlchen.constants import ZERO
 from rotkehlchen.fval import FVal
 
 
@@ -14,6 +16,27 @@ class GipuzkoaDisposalCalculation:
     disposal_expenses_eur: FVal
     net_disposal_value_eur: FVal
     gain_loss_eur: FVal
+
+
+def get_gipuzkoa_acquisition_cost_eur(
+        cost_basis: CostBasisInfo,
+) -> FVal:
+    """Return acquisition cost in EUR from rotki matched acquisitions.
+
+    The matched acquisitions are used instead of the aggregate bought-cost fields
+    because matched acquisition data survives cost-basis serialization.
+    """
+    if not cost_basis.is_complete:
+        raise ValueError('Cannot calculate Gipuzkoa acquisition cost from incomplete cost basis')
+
+    acquisition_cost_eur = ZERO
+    for matched_acquisition in cost_basis.matched_acquisitions:
+        acquisition_cost_eur += (
+            matched_acquisition.amount *
+            matched_acquisition.event.rate
+        )
+
+    return acquisition_cost_eur
 
 
 def calculate_gipuzkoa_disposal(
