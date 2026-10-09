@@ -279,3 +279,26 @@ def test_gipuzkoa_processed_disposal_ignores_fee_from_other_group() -> None:
     assert summary.gross_gains_eur == FVal('2000')
     assert summary.net_gain_loss_eur == FVal('2000')
     assert summary.disposal_count == 1
+
+def test_gipuzkoa_annual_disposal_summary_serialization() -> None:
+    calculation = calculate_gipuzkoa_disposal(
+        disposal_value_eur=FVal('10000'),
+        acquisition_cost_eur=FVal('7000'),
+        disposal_expenses_eur=FVal('100'),
+    )
+
+    summary = aggregate_gipuzkoa_disposals([
+        (Timestamp(1748736000), calculation),
+    ])[2025]
+
+    assert summary.serialize() == {
+        'tax_year': 2025,
+        'total_disposal_value_eur': '10000',
+        'total_acquisition_cost_eur': '7000',
+        'total_disposal_expenses_eur': '100',
+        'gross_gains_eur': '2900',
+        'gross_losses_eur': '0',
+        'net_gain_loss_eur': '2900',
+        'disposal_count': 1,
+    }
+

@@ -30,6 +30,19 @@ class GipuzkoaAnnualDisposalSummary:
     net_gain_loss_eur: FVal
     disposal_count: int
 
+    def serialize(self) -> dict[str, int | str]:
+        """Serialize the annual Gipuzkoa disposal summary for API and reports."""
+        return {
+            'tax_year': self.tax_year,
+            'total_disposal_value_eur': str(self.total_disposal_value_eur),
+            'total_acquisition_cost_eur': str(self.total_acquisition_cost_eur),
+            'total_disposal_expenses_eur': str(self.total_disposal_expenses_eur),
+            'gross_gains_eur': str(self.gross_gains_eur),
+            'gross_losses_eur': str(self.gross_losses_eur),
+            'net_gain_loss_eur': str(self.net_gain_loss_eur),
+            'disposal_count': self.disposal_count,
+        }
+
 
 def aggregate_gipuzkoa_disposals(
         disposals: Iterable[tuple[Timestamp, GipuzkoaDisposalCalculation]],
