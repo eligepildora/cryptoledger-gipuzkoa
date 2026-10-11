@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+
 from rotkehlchen.accounting.mixins.event import AccountingEventType
 from rotkehlchen.constants.assets import A_EUR
 from rotkehlchen.fval import FVal
@@ -302,3 +304,86 @@ def test_gipuzkoa_annual_disposal_summary_serialization() -> None:
         'disposal_count': 1,
     }
 
+
+def test_gipuzkoa_non_trade_history_disposal_is_aggregated(
+        monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cost_basis = SimpleNamespace(
+        is_complete=True,
+        matched_acquisitions=[
+            SimpleNamespace(
+                amount=FVal('2'),
+                event=SimpleNamespace(rate=FVal('1500')),
+            ),
+        ],
+    )
+    processed_event = SimpleNamespace(
+        event_type=AccountingEventType.TRANSACTION_EVENT,
+        extra_data={
+            'direction': EventDirection.OUT.serialize(),
+            'originating_event_id': 123,
+        },
+        timestamp=Timestamp(1748736000),
+        taxable_amount=FVal('2'),
+        free_amount=FVal('0'),
+        price=FVal('2500'),
+        cost_basis=cost_basis,
+    )
+    history_event = SimpleNamespace(identifier=123)
+
+    monkeypatch.setattr(
+        'rotkehlchen.gipuzkoa.summary.get_gipuzkoa_history_metadata',
+        lambda event: {'technical_classification': 'disposal'},
+    )
+
+    summaries = aggregate_gipuzkoa_processed_disposals(
+        events=[processed_event],
+        main_currency=A_EUR,
+        history_events_by_id={123: history_event},
+    )
+
+    summary = summaries[2025]
+    assert summary.total_disposal_value_eur == FVal('5000')
+    assert summary.total_acquisition_cost_eur == FVal('3000')
+    assert summary.net_gain_loss_eur == FVal('2000')
+    assert summary.disposal_count == 1
+
+
+def test_gipuzkoa_non_trade_history_transfer_is_not_disposal(
+        monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cost_basis = SimpleNamespace(
+        is_complete=True,
+        matched_acquisitions=[
+            SimpleNamespace(
+                amount=FVal('2'),
+                event=SimpleNamespace(rate=FVal('1500')),
+            ),
+        ],
+    )
+    processed_event = SimpleNamespace(
+        event_type=AccountingEventType.TRANSACTION_EVENT,
+        extra_data={
+            'direction': EventDirection.OUT.serialize(),
+            'originating_event_id': 456,
+        },
+        timestamp=Timestamp(1748736000),
+        taxable_amount=FVal('2'),
+        free_amount=FVal('0'),
+        price=FVal('2500'),
+        cost_basis=cost_basis,
+    )
+    history_event = SimpleNamespace(identifier=456)
+
+    monkeypatch.setattr(
+        'rotkehlchen.gipuzkoa.summary.get_gipuzkoa_history_metadata',
+        lambda event: {'technical_classification': 'transfer'},
+    )
+
+    summaries = aggregate_gipuzkoa_processed_disposals(
+        events=[processed_event],
+        main_currency=A_EUR,
+        history_events_by_id={456: history_event},
+    )
+
+    assert summaries == {}

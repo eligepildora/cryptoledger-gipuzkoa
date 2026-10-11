@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING, Any
 
 from rotkehlchen.constants.assets import A_EUR
+from rotkehlchen.db.filtering import HistoryEventFilterQuery
+from rotkehlchen.db.history_events import DBHistoryEvents
 from rotkehlchen.errors.misc import InputError
 from rotkehlchen.gipuzkoa.summary import aggregate_gipuzkoa_processed_disposals
 
@@ -35,8 +37,35 @@ def get_gipuzkoa_report_summary(
             f'Report {report_id} uses {profit_currency}',
         )
 
+    processed_events = dbreport.get_report_data_unfiltered(report_id)
+    originating_event_ids = {
+        originating_event_id
+        for event in processed_events
+        if isinstance(
+            originating_event_id := event.extra_data.get('originating_event_id'),
+            int,
+        )
+    }
+
+    history_events_by_id = {}
+    if originating_event_ids:
+        dbhistory = DBHistoryEvents(dbreport.db)
+        with dbreport.db.conn.read_ctx() as cursor:
+            history_events = dbhistory.get_history_events_internal(
+                cursor=cursor,
+                filter_query=HistoryEventFilterQuery.make(
+                    identifiers=list(originating_event_ids),
+                ),
+            )
+        history_events_by_id = {
+            event.identifier: event
+            for event in history_events
+            if event.identifier is not None
+        }
+
     summaries = aggregate_gipuzkoa_processed_disposals(
-        events=dbreport.get_report_data_unfiltered(report_id),
+        events=processed_events,
         main_currency=A_EUR,
+        history_events_by_id=history_events_by_id,
     )
     return [summaries[tax_year].serialize() for tax_year in sorted(summaries)]

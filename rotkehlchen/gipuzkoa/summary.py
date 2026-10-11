@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Iterable, Mapping
 
 from rotkehlchen.accounting.mixins.event import AccountingEventType
 from rotkehlchen.constants import ZERO
@@ -9,12 +9,14 @@ from rotkehlchen.gipuzkoa.calculation import (
     calculate_gipuzkoa_processed_disposal,
 )
 from rotkehlchen.gipuzkoa.dates import get_gipuzkoa_tax_year
+from rotkehlchen.gipuzkoa.history import get_gipuzkoa_history_metadata
 from rotkehlchen.history.events.structures.types import EventDirection
 from rotkehlchen.types import Timestamp
 
 if TYPE_CHECKING:
     from rotkehlchen.accounting.structures.processed_event import ProcessedAccountingEvent
     from rotkehlchen.assets.asset import Asset
+    from rotkehlchen.history.events.structures.base import HistoryBaseEntry
 
 
 @dataclass
@@ -85,6 +87,7 @@ def aggregate_gipuzkoa_disposals(
 def aggregate_gipuzkoa_processed_disposals(
         events: Iterable[ProcessedAccountingEvent],
         main_currency: Asset,
+        history_events_by_id: Mapping[int, HistoryBaseEntry] | None = None,
 ) -> dict[int, GipuzkoaAnnualDisposalSummary]:
     """Calculate and aggregate processed disposal events by Gipuzkoa tax year."""
     processed_events = list(events)
@@ -108,10 +111,23 @@ def aggregate_gipuzkoa_processed_disposals(
 
     disposals = []
     for event in processed_events:
-        if (
-            event.event_type != AccountingEventType.TRADE or
-            event.extra_data.get('direction') != EventDirection.OUT.serialize()
-        ):
+        if event.extra_data.get('direction') != EventDirection.OUT.serialize():
+            continue
+
+        is_trade_disposal = event.event_type == AccountingEventType.TRADE
+        is_history_disposal = False
+
+        if is_trade_disposal is False and history_events_by_id is not None:
+            originating_event_id = event.extra_data.get('originating_event_id')
+            if isinstance(originating_event_id, int):
+                history_event = history_events_by_id.get(originating_event_id)
+                if history_event is not None:
+                    metadata = get_gipuzkoa_history_metadata(history_event)
+                    is_history_disposal = (
+                        metadata['technical_classification'] == 'disposal'
+                    )
+
+        if is_trade_disposal is False and is_history_disposal is False:
             continue
 
         group_id = event.extra_data.get('group_id')
