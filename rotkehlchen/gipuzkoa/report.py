@@ -4,22 +4,20 @@ from rotkehlchen.constants.assets import A_EUR
 from rotkehlchen.db.filtering import HistoryEventFilterQuery
 from rotkehlchen.db.history_events import DBHistoryEvents
 from rotkehlchen.errors.misc import InputError
+from rotkehlchen.gipuzkoa.donations import collect_gipuzkoa_donation_reviews
 from rotkehlchen.gipuzkoa.summary import aggregate_gipuzkoa_processed_disposals
 
 if TYPE_CHECKING:
+    from rotkehlchen.accounting.structures.processed_event import ProcessedAccountingEvent
     from rotkehlchen.db.reports import DBAccountingReports
+    from rotkehlchen.history.events.structures.base import HistoryBaseEntry
 
 
-def get_gipuzkoa_report_summary(
+def _load_gipuzkoa_report_context(
         dbreport: 'DBAccountingReports',
         report_id: int,
-) -> list[dict[str, Any]]:
-    """Calculate Gipuzkoa annual disposal summaries from a persisted PnL report.
-
-    The report must exist, be completely processed and use EUR as its profit
-    currency. All persisted accounting events are loaded without API filtering
-    or pagination before calculating the fiscal summaries.
-    """
+) -> tuple[list['ProcessedAccountingEvent'], dict[int, 'HistoryBaseEntry']]:
+    """Load and validate persisted accounting and linked history events."""
     reports, _ = dbreport.get_reports(report_id=report_id, limit=1)
     if len(reports) == 0:
         raise InputError(f'PnL report with id {report_id} does not exist')
@@ -54,7 +52,7 @@ def get_gipuzkoa_report_summary(
             history_events = dbhistory.get_history_events_internal(
                 cursor=cursor,
                 filter_query=HistoryEventFilterQuery.make(
-                    identifiers=list(originating_event_ids),
+                    identifiers=sorted(originating_event_ids),
                 ),
             )
         history_events_by_id = {
@@ -63,9 +61,39 @@ def get_gipuzkoa_report_summary(
             if event.identifier is not None
         }
 
+    return processed_events, history_events_by_id
+
+
+def get_gipuzkoa_report_summary(
+        dbreport: 'DBAccountingReports',
+        report_id: int,
+) -> list[dict[str, Any]]:
+    """Calculate Gipuzkoa annual disposal summaries from a persisted PnL report."""
+    processed_events, history_events_by_id = _load_gipuzkoa_report_context(
+        dbreport=dbreport,
+        report_id=report_id,
+    )
+
     summaries = aggregate_gipuzkoa_processed_disposals(
         events=processed_events,
         main_currency=A_EUR,
         history_events_by_id=history_events_by_id,
     )
     return [summaries[tax_year].serialize() for tax_year in sorted(summaries)]
+
+
+def get_gipuzkoa_report_donation_reviews(
+        dbreport: 'DBAccountingReports',
+        report_id: int,
+) -> list[dict[str, int | str]]:
+    """Return donation events requiring dedicated Gipuzkoa tax review."""
+    processed_events, history_events_by_id = _load_gipuzkoa_report_context(
+        dbreport=dbreport,
+        report_id=report_id,
+    )
+
+    reviews = collect_gipuzkoa_donation_reviews(
+        events=processed_events,
+        history_events_by_id=history_events_by_id,
+    )
+    return [review.serialize() for review in reviews]
