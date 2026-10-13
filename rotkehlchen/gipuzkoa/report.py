@@ -5,6 +5,7 @@ from rotkehlchen.db.filtering import HistoryEventFilterQuery
 from rotkehlchen.db.history_events import DBHistoryEvents
 from rotkehlchen.errors.misc import InputError
 from rotkehlchen.gipuzkoa.donations import collect_gipuzkoa_donation_reviews
+from rotkehlchen.gipuzkoa.losses import collect_gipuzkoa_loss_reviews
 from rotkehlchen.gipuzkoa.summary import aggregate_gipuzkoa_processed_disposals
 
 if TYPE_CHECKING:
@@ -93,6 +94,22 @@ def get_gipuzkoa_report_donation_reviews(
     )
 
     reviews = collect_gipuzkoa_donation_reviews(
+        events=processed_events,
+        history_events_by_id=history_events_by_id,
+    )
+    return [review.serialize() for review in reviews]
+
+def get_gipuzkoa_report_loss_reviews(
+        dbreport: 'DBAccountingReports',
+        report_id: int,
+) -> list[dict[str, int | str]]:
+    """Return loss events requiring dedicated Gipuzkoa tax review."""
+    processed_events, history_events_by_id = _load_gipuzkoa_report_context(
+        dbreport=dbreport,
+        report_id=report_id,
+    )
+
+    reviews = collect_gipuzkoa_loss_reviews(
         events=processed_events,
         history_events_by_id=history_events_by_id,
     )
