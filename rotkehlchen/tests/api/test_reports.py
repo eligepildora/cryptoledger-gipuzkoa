@@ -1486,3 +1486,99 @@ def test_get_gipuzkoa_expense_is_not_disposal_end_to_end(
     data = response.json()
     assert data['message'] == ''
     assert data['result'] == []
+
+def test_get_gipuzkoa_acquisition_is_not_disposal_end_to_end(
+        rotkehlchen_api_server: APIServer,
+) -> None:
+    database = rotkehlchen_api_server.rest_api.rotkehlchen.data.db
+    dbreport = DBAccountingReports(database)
+    dbhistory = DBHistoryEvents(database)
+
+    acquisition_timestamp = Timestamp(1748736000)
+    history_group_identifier = 'gipuzkoa-acquisition'
+
+    settings = DBSettings(
+        main_currency=A_EUR,
+        calculate_past_cost_basis=False,
+        include_gas_costs=False,
+        pnl_csv_have_summary=False,
+        pnl_csv_with_formulas=True,
+        taxfree_after_period=15,
+    )
+    report_id = dbreport.add_report(
+        first_processed_timestamp=acquisition_timestamp,
+        start_ts=acquisition_timestamp,
+        end_ts=acquisition_timestamp,
+        settings=settings,
+    )
+
+    with database.conn.write_ctx() as write_cursor:
+        dbhistory.add_history_events(
+            write_cursor=write_cursor,
+            history=[HistoryEvent(
+                group_identifier=history_group_identifier,
+                sequence_index=0,
+                timestamp=TimestampMS(acquisition_timestamp * 1000),
+                location=Location.EXTERNAL,
+                event_type=HistoryEventType.TRADE,
+                event_subtype=HistoryEventSubType.RECEIVE,
+                asset=A_ETH,
+                amount=FVal('2'),
+                notes='Gipuzkoa crypto acquisition',
+            )],
+        )
+
+    with database.conn.read_ctx() as cursor:
+        inserted_history_events = dbhistory.get_history_events_internal(
+            cursor=cursor,
+            filter_query=HistoryEventFilterQuery.make(
+                group_identifiers=[history_group_identifier],
+            ),
+        )
+    assert len(inserted_history_events) == 1
+    history_event_identifier = inserted_history_events[0].identifier
+    assert history_event_identifier is not None
+    assert (
+        get_gipuzkoa_history_metadata(
+            inserted_history_events[0],
+        )['technical_classification']
+        == 'acquisition'
+    )
+
+    processed_event = ProcessedAccountingEvent(
+        event_type=AccountingEventType.TRANSACTION_EVENT,
+        notes='Gipuzkoa processed acquisition',
+        location=Location.EXTERNAL,
+        timestamp=acquisition_timestamp,
+        asset=A_ETH,
+        free_amount=ZERO,
+        taxable_amount=FVal('2'),
+        price=Price(FVal('2500')),
+        pnl=PNL(),
+        cost_basis=None,
+        index=0,
+        extra_data={
+            'direction': 'in',
+            'originating_event_id': history_event_identifier,
+        },
+    )
+
+    dbreport.add_report_data(
+        report_id=report_id,
+        time=processed_event.timestamp,
+        ts_converter=timestamp_to_date,
+        event=processed_event,
+    )
+
+    response = requests.get(
+        api_url_for(
+            rotkehlchen_api_server,
+            'per_report_gipuzkoa_resource',
+            report_id=report_id,
+        ),
+    )
+
+    assert_proper_response(response)
+    data = response.json()
+    assert data['message'] == ''
+    assert data['result'] == []
